@@ -9,9 +9,3 @@ pub enum AppScreen {
 pub enum Overlay {
     Settings,
 }
-
-#[derive(Debug)]
-pub struct AppState {
-    pub screen: AppScreen,
-    pub overlay: Option<Overlay>,
-}

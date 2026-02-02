@@ -2,6 +2,7 @@ use lofty::file::{AudioFile, TaggedFileExt};
 use lofty::prelude::Accessor;
 use lofty::probe::Probe;
 
+#[derive(Clone)]
 pub struct Track {
     pub title: String,
     pub artist: String,

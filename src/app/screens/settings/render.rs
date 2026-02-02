@@ -1,4 +1,4 @@
-use ratatui::{buffer::Buffer, layout::Rect, widgets::{Block, Borders, Paragraph}, prelude::Text};
+use ratatui::{buffer::Buffer, layout::Rect, widgets::{Block, Borders}};
 use ratatui::prelude::{Color, Modifier, Style, Widget};
 use ratatui::widgets::{List, ListItem, ListState};
 use crate::app::app::App;
@@ -26,10 +26,10 @@ pub fn render(area: Rect, buf: &mut Buffer, app: &App) {
         width: popup_area.width - 2,
         height: popup_area.height - 2,
     };
-    render_menu(inner_area, buf, &["Option 1", "Option 2", "Option 3"], app.settings_index);
+    render_menu(inner_area, buf, &["Option 1", "Option 2", "Option 3"], app.ui.settings.selected_index());
 }
 
-pub fn render_menu(area: Rect, buf: &mut Buffer, items: &[&str], selected: usize) {
+fn render_menu(area: Rect, buf: &mut Buffer, items: &[&str], selected: usize) {
     let list_items: Vec<ListItem> = items.iter().map(|i| ListItem::new(*i)).collect();
     let mut state = ListState::default();
     state.select(Some(selected));

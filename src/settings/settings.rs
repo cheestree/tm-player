@@ -1,9 +1,9 @@
 use std::fmt::{Debug, Formatter};
 
 pub struct Settings {
-    pub music_paths: Vec<String>,
-    pub volume_level: u8,
-    pub shuffle: bool,
+    music_paths: Vec<String>,
+    volume_level: u8,
+    shuffle: bool,
 }
 
 impl Settings {
