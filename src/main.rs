@@ -1,7 +1,6 @@
 mod app;
 mod track;
 mod settings;
-mod parser;
 
 use std::io;
 

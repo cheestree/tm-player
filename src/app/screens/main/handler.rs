@@ -19,6 +19,15 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char(' ') => {
             app.audio.toggle_pause();
         }
+        KeyCode::Right => {
+            app.ui.main.select_next(app.audio.tracks.len());
+        }
+        KeyCode::Left => {
+            app.ui.main.select_previous();
+        }
+        KeyCode::Char('r') => {
+            app.rescan_tracks();
+        }
         _ => {}
     }
 }

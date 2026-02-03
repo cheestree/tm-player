@@ -1,14 +1,37 @@
 use lofty::file::{AudioFile, TaggedFileExt};
 use lofty::prelude::Accessor;
 use lofty::probe::Probe;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Track {
     pub title: String,
     pub artist: String,
     pub album: String,
+    #[serde(with = "duration_serde")]
     pub duration: core::time::Duration,
     pub path: String,
+}
+
+// Custom serialization for Duration
+mod duration_serde {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::time::Duration;
+
+    pub fn serialize<S>(duration: &Duration, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        duration.as_secs().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let secs = u64::deserialize(deserializer)?;
+        Ok(Duration::from_secs(secs))
+    }
 }
 
 impl Track {

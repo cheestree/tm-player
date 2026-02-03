@@ -1,7 +1,7 @@
 use crate::app::app_screen::{AppScreen, Overlay};
 use crate::app::state::{AudioState, UIState};
 use crate::app::screens::{help, main, settings};
-use crate::settings::settings::Settings;
+use crate::settings::settings::{Keymap, Settings};
 use crate::track;
 use cli_log::init_cli_log;
 use crossterm::event;
@@ -10,6 +10,7 @@ use ratatui::prelude::Widget;
 use ratatui::widgets::Paragraph;
 use ratatui::{DefaultTerminal, Frame};
 use rodio::OutputStreamBuilder;
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::io;
 use std::sync::{Arc, Mutex};
@@ -23,45 +24,87 @@ pub struct App {
 }
 
 impl App {
+    fn default_keymap() -> HashMap<Keymap, KeyCode> {
+        let mut map = HashMap::new();
+        map.insert(Keymap::Play, KeyCode::Enter);
+        map.insert(Keymap::Pause, KeyCode::Char(' '));
+        map.insert(Keymap::NextTrack, KeyCode::Right);
+        map.insert(Keymap::PreviousTrack, KeyCode::Left);
+        map.insert(Keymap::VolumeUp, KeyCode::Up);
+        map.insert(Keymap::VolumeDown, KeyCode::Down);
+        map
+    }
+
     pub fn load_settings() -> Settings {
         let path = "settings.json";
-        match std::fs::read_to_string(path) {
-            Ok(contents) => {
-                match serde_json::from_str::<serde_json::Value>(&contents) {
-                    Ok(parsed) => {
-                        let music_paths = parsed["music_paths"]
-                            .as_array()
-                            .unwrap_or(&vec![])
-                            .iter()
-                            .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                            .collect();
-                        let volume_level = parsed["volume_level"].as_u64().unwrap_or(50) as u8;
-                        let shuffle = parsed["shuffle"].as_bool().unwrap_or(false);
-                        Settings::new(music_paths, volume_level, shuffle)
-                    }
-                    Err(_) => Settings::new(vec![], 50, false),
-                }
-            }
-            Err(_) => {
-                let default = Settings::new(vec![], 50, false);
-                let json = serde_json::json!({
-                    "music_paths": [],
-                    "volume_level": 50,
-                    "shuffle": false
-                });
-                let _ = std::fs::write(path, serde_json::to_string_pretty(&json).unwrap());
-                default
+
+        if let Ok(contents) = std::fs::read_to_string(path) {
+            if let Ok(settings) = serde_json::from_str::<Settings>(&contents) {
+                return settings;
             }
         }
+
+        let default_settings = Settings::new(
+            vec![],
+            50,
+            false,
+            Self::default_keymap()
+        );
+
+        if let Ok(json) = serde_json::to_string_pretty(&default_settings) {
+            let _ = std::fs::write(path, json);
+        }
+
+        default_settings
+    }
+
+    pub fn save_settings(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let path = "settings.json";
+        let json = serde_json::to_string_pretty(&self.settings)?;
+        std::fs::write(path, json)?;
+        Ok(())
     }
 
     pub fn load_tracks(settings: &Settings) -> Vec<track::track::Track> {
+        if let Ok(cached) = Self::load_tracks_from_cache() {
+            return cached;
+        }
+
+        Self::scan_tracks(settings)
+    }
+
+    fn load_tracks_from_cache() -> Result<Vec<track::track::Track>, Box<dyn std::error::Error>> {
+        let cache_path = "tracks_cache.json";
+        let contents = std::fs::read_to_string(cache_path)?;
+        let tracks: Vec<track::track::Track> = serde_json::from_str(&contents)?;
+        Ok(tracks)
+    }
+
+    pub fn scan_tracks(settings: &Settings) -> Vec<track::track::Track> {
         let mut tracks = Vec::new();
         for path in settings.get_music_paths() {
             let track_paths = track::utils::get_audio_file_paths_in_directory(path);
             tracks.extend(track_paths.iter().map(|t| track::track::Track::new(t)).collect::<Vec<track::track::Track>>());
         }
+
+        let _ = Self::save_tracks_to_cache(&tracks);
+
         tracks
+    }
+
+    fn save_tracks_to_cache(tracks: &[track::track::Track]) -> Result<(), Box<dyn std::error::Error>> {
+        let cache_path = "tracks_cache.json";
+        let json = serde_json::to_string_pretty(tracks)?;
+        std::fs::write(cache_path, json)?;
+        Ok(())
+    }
+
+    pub fn rescan_tracks(&mut self) {
+        self.audio.tracks = Self::scan_tracks(&self.settings);
+        // Reset selected track if out of bounds
+        if self.ui.main.selected_track() >= self.audio.tracks.len() {
+            self.ui.main.select_previous();
+        }
     }
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
@@ -114,10 +157,22 @@ impl App {
 
         // Global keys
         match key_event.code {
-            KeyCode::Char('d') => self.ui.toggle_sidebar(),
-            KeyCode::Char('p') => self.ui.toggle_debug(),
-            KeyCode::Char('s') => self.ui.overlay = Some(Overlay::Settings),
-            KeyCode::Char('q') => self.exit(),
+            KeyCode::Char('d') => {
+                self.ui.toggle_sidebar();
+                return;
+            }
+            KeyCode::Char('p') => {
+                self.ui.toggle_debug();
+                return;
+            }
+            KeyCode::Char('s') => {
+                self.ui.overlay = Some(Overlay::Settings);
+                return;
+            }
+            KeyCode::Char('q') => {
+                self.exit();
+                return;
+            }
             _ => {},
         }
 

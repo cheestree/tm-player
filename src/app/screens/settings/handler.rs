@@ -1,6 +1,5 @@
 use crate::app::app::App;
 use crossterm::event::{KeyCode, KeyEvent};
-use crate::parser;
 
 /// Handle key events specific to the settings screen
 pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
@@ -13,10 +12,8 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
         }
         KeyCode::Char('l') => {
             // Reload settings from file
-            if let Ok(settings) = parser::parser::parse_settings("settings.json") {
-                app.settings = settings;
-                app.ui.settings.reset();
-            }
+            app.settings = App::load_settings();
+            app.ui.settings.reset();
         }
         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('m') => {
             // Close settings overlay
