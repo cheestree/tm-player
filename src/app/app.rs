@@ -24,14 +24,21 @@ pub struct App {
 }
 
 impl App {
-    fn default_keymap() -> HashMap<Keymap, KeyCode> {
+    fn default_keymap() -> HashMap<KeyCode, Keymap> {
         let mut map = HashMap::new();
-        map.insert(Keymap::Play, KeyCode::Enter);
-        map.insert(Keymap::Pause, KeyCode::Char(' '));
-        map.insert(Keymap::NextTrack, KeyCode::Right);
-        map.insert(Keymap::PreviousTrack, KeyCode::Left);
-        map.insert(Keymap::VolumeUp, KeyCode::Up);
-        map.insert(Keymap::VolumeDown, KeyCode::Down);
+        // Playback actions
+        map.insert(KeyCode::Enter, Keymap::Play);
+        map.insert(KeyCode::Char(' '), Keymap::Pause);
+        map.insert(KeyCode::Right, Keymap::NextTrack);
+        map.insert(KeyCode::Left, Keymap::PreviousTrack);
+        map.insert(KeyCode::Up, Keymap::VolumeUp);
+        map.insert(KeyCode::Down, Keymap::VolumeDown);
+        map.insert(KeyCode::Char('r'), Keymap::Rescan);
+        // Global UI actions
+        map.insert(KeyCode::Char('d'), Keymap::ToggleSidebar);
+        map.insert(KeyCode::Char('p'), Keymap::ToggleDebug);
+        map.insert(KeyCode::Char('s'), Keymap::OpenSettings);
+        map.insert(KeyCode::Char('q'), Keymap::Quit);
         map
     }
 
@@ -155,25 +162,27 @@ impl App {
             return;
         }
 
-        // Global keys
-        match key_event.code {
-            KeyCode::Char('d') => {
-                self.ui.toggle_sidebar();
-                return;
+        // Check if key is bound to any global action
+        if let Some(action) = self.settings.get_action(&key_event.code) {
+            match action {
+                Keymap::ToggleSidebar => {
+                    self.ui.toggle_sidebar();
+                    return;
+                }
+                Keymap::ToggleDebug => {
+                    self.ui.toggle_debug();
+                    return;
+                }
+                Keymap::OpenSettings => {
+                    self.ui.overlay = Some(Overlay::Settings);
+                    return;
+                }
+                Keymap::Quit => {
+                    self.exit();
+                    return;
+                }
+                _ => {}
             }
-            KeyCode::Char('p') => {
-                self.ui.toggle_debug();
-                return;
-            }
-            KeyCode::Char('s') => {
-                self.ui.overlay = Some(Overlay::Settings);
-                return;
-            }
-            KeyCode::Char('q') => {
-                self.exit();
-                return;
-            }
-            _ => {},
         }
 
         // Delegate to screen

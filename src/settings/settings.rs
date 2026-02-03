@@ -5,12 +5,19 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum Keymap {
+    // Playback actions
     Play,
     Pause,
     NextTrack,
     PreviousTrack,
     VolumeUp,
     VolumeDown,
+    Rescan,
+    // Global UI actions
+    ToggleSidebar,
+    ToggleDebug,
+    OpenSettings,
+    Quit,
 }
 
 impl Keymap {
@@ -22,6 +29,11 @@ impl Keymap {
             Keymap::PreviousTrack => "Previous Track",
             Keymap::VolumeUp => "Volume Up",
             Keymap::VolumeDown => "Volume Down",
+            Keymap::Rescan => "Rescan Tracks",
+            Keymap::ToggleSidebar => "Toggle Sidebar",
+            Keymap::ToggleDebug => "Toggle Debug",
+            Keymap::OpenSettings => "Open Settings",
+            Keymap::Quit => "Quit",
         }
     }
 }
@@ -32,10 +44,10 @@ pub struct Settings {
     volume_level: u8,
     shuffle: bool,
     #[serde(with = "keymap_serde")]
-    keymap: HashMap<Keymap, KeyCode>,
+    keymap: HashMap<KeyCode, Keymap>,
 }
 
-// Custom serialization for HashMap<Keymap, KeyCode>
+// Custom serialization for HashMap<KeyCode, Keymap>
 mod keymap_serde {
     use super::*;
     use serde::{Deserializer, Serializer, Deserialize};
@@ -90,7 +102,7 @@ mod keymap_serde {
     }
 
     pub fn serialize<S>(
-        keymap: &HashMap<Keymap, KeyCode>,
+        keymap: &HashMap<KeyCode, Keymap>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
@@ -98,7 +110,7 @@ mod keymap_serde {
     {
         let entries: Vec<KeymapEntry> = keymap
             .iter()
-            .map(|(action, key)| KeymapEntry {
+            .map(|(key, action)| KeymapEntry {
                 action: action.clone(),
                 key: (*key).into(),
             })
@@ -108,20 +120,20 @@ mod keymap_serde {
 
     pub fn deserialize<'de, D>(
         deserializer: D,
-    ) -> Result<HashMap<Keymap, KeyCode>, D::Error>
+    ) -> Result<HashMap<KeyCode, Keymap>, D::Error>
     where
         D: Deserializer<'de>,
     {
         let entries = Vec::<KeymapEntry>::deserialize(deserializer)?;
         Ok(entries
             .into_iter()
-            .map(|entry| (entry.action, entry.key.into()))
+            .map(|entry| (entry.key.into(), entry.action))
             .collect())
     }
 }
 
 impl Settings {
-    pub fn new(music_paths: Vec<String>, volume_level: u8, shuffle: bool, keymap: HashMap<Keymap, KeyCode>) -> Self {
+    pub fn new(music_paths: Vec<String>, volume_level: u8, shuffle: bool, keymap: HashMap<KeyCode, Keymap>) -> Self {
         Settings {
             music_paths,
             volume_level,
@@ -130,16 +142,27 @@ impl Settings {
         }
     }
 
-    pub fn get_keymap(&self) -> &HashMap<Keymap, KeyCode> {
+    pub fn get_keymap(&self) -> &HashMap<KeyCode, Keymap> {
         &self.keymap
     }
 
-    pub fn get_keycode(&self, action: &Keymap) -> Option<&KeyCode> {
-        self.keymap.get(action)
+    pub fn get_action(&self, keycode: &KeyCode) -> Option<&Keymap> {
+        self.keymap.get(keycode)
     }
 
-    pub fn set_keymap(&mut self, action: Keymap, keycode: KeyCode) {
-        self.keymap.insert(action, keycode);
+    pub fn set_keybind(&mut self, keycode: KeyCode, action: Keymap) {
+        self.keymap.insert(keycode, action);
+    }
+    
+    pub fn remove_keybind(&mut self, keycode: &KeyCode) {
+        self.keymap.remove(keycode);
+    }
+    
+    pub fn find_key_for_action(&self, action: &Keymap) -> Option<KeyCode> {
+        self.keymap
+            .iter()
+            .find(|(_, a)| *a == action)
+            .map(|(k, _)| *k)
     }
 
     pub fn get_music_paths(&self) -> &Vec<String> {
