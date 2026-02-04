@@ -3,6 +3,7 @@ use std::fmt::{Debug, Formatter};
 use crossterm::event::KeyCode;
 use serde::{Deserialize, Serialize};
 
+/// Represents the various actions that can be mapped to keybindings.
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum Keymap {
     // Playback actions
@@ -25,8 +26,9 @@ pub enum Keymap {
     Quit,
 }
 
+/// Provides a human-readable string representation for each Keymap action.
 impl Keymap {
-    pub(crate) fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             Keymap::Play => "Play",
             Keymap::Pause => "Pause",
@@ -47,9 +49,10 @@ impl Keymap {
     }
 }
 
+/// Application settings including music paths, volume, shuffle, and keybindings.
 #[derive(Serialize, Deserialize)]
 pub struct Settings {
-    music_paths: Vec<String>,
+    pub music_paths: Vec<String>,
     volume_level: u8,
     shuffle: bool,
     #[serde(with = "keymap_serde")]
@@ -141,6 +144,7 @@ mod keymap_serde {
     }
 }
 
+/// Implementation of Settings methods for managing application settings.
 impl Settings {
     pub fn new(music_paths: Vec<String>, volume_level: u8, shuffle: bool, keymap: HashMap<KeyCode, Keymap>) -> Self {
         Settings {
@@ -151,22 +155,22 @@ impl Settings {
         }
     }
 
-    pub fn get_keymap(&self) -> &HashMap<KeyCode, Keymap> {
-        &self.keymap
-    }
-
+    /// Retrieves the action mapped to the given keycode, if any.
     pub fn get_action(&self, keycode: &KeyCode) -> Option<&Keymap> {
         self.keymap.get(keycode)
     }
 
+    /// Sets or updates the keybinding for a given action.
     pub fn set_keybind(&mut self, keycode: KeyCode, action: Keymap) {
         self.keymap.insert(keycode, action);
     }
-    
+
+    /// Removes the keybinding for the specified keycode.
     pub fn remove_keybind(&mut self, keycode: &KeyCode) {
         self.keymap.remove(keycode);
     }
-    
+
+    /// Finds the keycode associated with a given action, if any.
     pub fn find_key_for_action(&self, action: &Keymap) -> Option<KeyCode> {
         self.keymap
             .iter()
@@ -174,34 +178,27 @@ impl Settings {
             .map(|(k, _)| *k)
     }
 
-    pub fn get_music_paths(&self) -> &Vec<String> {
-        &self.music_paths
-    }
-
-    pub fn get_volume_level(&self) -> u8 {
-        self.volume_level
-    }
-
-    pub fn is_shuffle_enabled(&self) -> bool {
-        self.shuffle
-    }
-
+    /// Sets the list of music paths.
     pub fn set_music_paths(&mut self, paths: Vec<String>) {
         self.music_paths = paths;
     }
 
+    /// Adds a new music path to the list.
     pub fn add_music_path(&mut self, path: String) {
         self.music_paths.push(path);
     }
 
+    /// Sets the volume level, ensuring it does not exceed 100.
     pub fn set_volume_level(&mut self, level: u8) {
         self.volume_level = level.min(100);
     }
 
+    /// Shuffle setting management
     pub fn set_shuffle(&mut self, enabled: bool) {
         self.shuffle = enabled;
     }
 
+    /// Toggles the shuffle setting.
     pub fn toggle_shuffle(&mut self) {
         self.shuffle = !self.shuffle;
     }

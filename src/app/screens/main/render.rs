@@ -2,15 +2,15 @@ use crate::app::app::App;
 use crate::settings::settings::Keymap;
 use crossterm::event::KeyCode;
 use ratatui::prelude::{Color, Modifier, StatefulWidget, Style};
-use ratatui::{buffer::Buffer, layout::Rect, widgets::{Block, Borders, List, ListItem, ListState, Row, Table, TableState}};
+use ratatui::{buffer::Buffer, layout::Rect, widgets::{Block, Borders, Cell, List, ListItem, ListState, Row, Table, TableState}};
 use ratatui::layout::Constraint;
 use ratatui::text::{Line, Span};
 
 pub fn render(area: Rect, buf: &mut Buffer, app: &App) {
-    let sidebar_width = if app.ui.side_bar() { 50 } else { 0 };
+    let sidebar_width = if app.ui.side_bar { 50 } else { 0 };
 
     // Sidebar rendering
-    if app.ui.side_bar() {
+    if app.ui.side_bar {
         let sidebar_area = Rect {
             x: area.x,
             y: area.y,
@@ -21,7 +21,7 @@ pub fn render(area: Rect, buf: &mut Buffer, app: &App) {
     }
 
     // Main area rendering
-    let main_area = if app.ui.side_bar() {
+    let main_area = if app.ui.side_bar {
         Rect {
             x: area.x + sidebar_width,
             y: area.y,
@@ -109,7 +109,7 @@ fn render_sidebar(area: Rect, buf: &mut Buffer, app: &App) {
 
     let items: Vec<ListItem> = playlists
         .iter()
-        .map(|playlist| ListItem::new(playlist.name.clone()))
+        .map(|playlist| ListItem::new(&playlist.name[..]))
         .collect();
 
     let keybindings = build_sidebar_keybinding_line(app);
@@ -129,23 +129,24 @@ fn render_sidebar(area: Rect, buf: &mut Buffer, app: &App) {
         .highlight_symbol("► ");
 
     let mut state = ListState::default();
-    state.select(Some(app.ui.main.selected_playlist()));
+    state.select(Some(app.ui.main.selected_playlist));
 
     StatefulWidget::render(list, area, buf, &mut state);
 }
 
 fn render_main_content(area: Rect, buf: &mut Buffer, app: &App) {
-    let tracks = app.audio.get_playlist_tracks(app.ui.main.selected_playlist());
+    let tracks = app.audio.get_playlist_tracks(app.ui.main.selected_playlist);
 
     let rows: Vec<Row> = tracks.iter().map(|track| {
         let total_secs = track.duration.as_secs();
         let minutes = total_secs / 60;
         let seconds = total_secs % 60;
+        // Use Cell to avoid cloning - Cell accepts &str
         Row::new(vec![
-            track.artist.clone(),
-            track.title.clone(),
-            track.album.clone(),
-            format!("{:02}:{:02}", minutes, seconds),
+            Cell::from(&track.artist[..]),
+            Cell::from(&track.title[..]),
+            Cell::from(&track.album[..]),
+            Cell::from(format!("{:02}:{:02}", minutes, seconds)),
         ])
     }).collect();
 
@@ -177,8 +178,7 @@ fn render_main_content(area: Rect, buf: &mut Buffer, app: &App) {
     .row_highlight_style(Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD));
 
     let mut state = TableState::default();
-    state.select(Some(app.ui.main.selected_track()));
+    state.select(Some(app.ui.main.selected_track));
 
-    // Render the table
     StatefulWidget::render(table, area, buf, &mut state);
 }

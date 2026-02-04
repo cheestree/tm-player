@@ -4,6 +4,7 @@ use lofty::probe::Probe;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
+/// Represents a music track with metadata and file path.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Track {
     pub title: String,
@@ -34,7 +35,7 @@ impl PartialEq for Track {
 
 impl Eq for Track {}
 
-// Custom serialization for Duration
+/// Custom serialization for Duration
 mod duration_serde {
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use std::time::Duration;

@@ -13,6 +13,7 @@ pub struct Playlist {
     pub track_ids: Vec<u64>,
 }
 
+/// Playlist implementation
 impl Playlist {
     pub fn new(name: String, track_ids: Vec<u64>) -> Self {
         Self { name, track_ids }
@@ -26,6 +27,7 @@ pub struct PlaylistData {
     pub current_playlist: String,
 }
 
+/// The audio state of the application
 pub struct AudioState {
     /// All available tracks (the library)
     pub tracks: Vec<Track>,
@@ -135,15 +137,20 @@ impl AudioState {
         Ok(data)
     }
 
-    pub fn play_track(&mut self, track: &Track) {
-        let sink = self.sink.lock().unwrap();
-        let file = std::fs::File::open(&track.path).expect("open audio file");
-        let source = rodio::Decoder::new(io::BufReader::new(file)).expect("decode audio file");
-        sink.stop();
-        sink.append(source);
-        sink.play();
+    /// Play a track by its index in the tracks library
+    pub fn play_track_by_index(&mut self, track_index: usize) {
+        if let Some(track) = self.tracks.get(track_index) {
+            let path = &track.path;
+            let sink = self.sink.lock().unwrap();
+            let file = std::fs::File::open(path).expect("open audio file");
+            let source = rodio::Decoder::new(io::BufReader::new(file)).expect("decode audio file");
+            sink.stop();
+            sink.append(source);
+            sink.play();
+        }
     }
 
+    /// Toggle pause/play state
     pub fn toggle_pause(&mut self) {
         let sink = self.sink.lock().unwrap();
         if sink.is_paused() {
@@ -245,7 +252,7 @@ impl AudioState {
         if name == "All Tracks" {
             return false; // Can't delete the default playlist
         }
-        
+
         if let Some(index) = self.playlists.iter().position(|p| p.name == name) {
             self.playlists.remove(index);
             // Adjust current index if needed

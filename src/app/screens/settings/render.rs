@@ -26,7 +26,7 @@ pub fn render(area: Rect, buf: &mut Buffer, app: &App) {
         width: popup_area.width - 2,
         height: popup_area.height - 2,
     };
-    render_menu(inner_area, buf, &["Option 1", "Option 2", "Option 3"], app.ui.settings.selected_index());
+    render_menu(inner_area, buf, &["Option 1", "Option 2", "Option 3"], app.ui.settings.selected_index);
 }
 
 fn render_menu(area: Rect, buf: &mut Buffer, items: &[&str], selected: usize) {

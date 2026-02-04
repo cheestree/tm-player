@@ -15,7 +15,7 @@ use std::fmt::Debug;
 use std::io;
 use std::sync::{Arc, Mutex};
 
-
+/// The main application state.
 pub struct App {
     pub settings: Settings,
     pub audio: AudioState,
@@ -47,6 +47,7 @@ impl App {
         map
     }
 
+    /// Load settings from "settings.json" or create default if not found.
     pub fn load_settings() -> Settings {
         let path = "settings.json";
 
@@ -70,6 +71,7 @@ impl App {
         default_settings
     }
 
+    /// Save current settings to "settings.json".
     pub fn save_settings(&self) -> Result<(), Box<dyn std::error::Error>> {
         let path = "settings.json";
         let json = serde_json::to_string_pretty(&self.settings)?;
@@ -77,6 +79,7 @@ impl App {
         Ok(())
     }
 
+    /// Load tracks from cache or scan directories if cache is unavailable.
     pub fn load_tracks(settings: &Settings) -> Vec<track::track::Track> {
         if let Ok(cached) = Self::load_tracks_from_cache() {
             return cached;
@@ -85,6 +88,7 @@ impl App {
         Self::scan_tracks(settings)
     }
 
+    /// Load tracks from "tracks_cache.json".
     fn load_tracks_from_cache() -> Result<Vec<track::track::Track>, Box<dyn std::error::Error>> {
         let cache_path = "tracks_cache.json";
         let contents = std::fs::read_to_string(cache_path)?;
@@ -92,10 +96,11 @@ impl App {
         Ok(tracks)
     }
 
+    /// Scan music directories for audio files and return a list of tracks.
     pub fn scan_tracks(settings: &Settings) -> Vec<track::track::Track> {
         let mut tracks = Vec::new();
-        for path in settings.get_music_paths() {
-            let track_paths = track::utils::get_audio_file_paths_in_directory(path);
+        for path in &settings.music_paths {
+            let track_paths = track::utils::get_audio_file_paths_in_directory(&path);
             tracks.extend(track_paths.iter().map(|t| track::track::Track::new(t)).collect::<Vec<track::track::Track>>());
         }
 
@@ -104,6 +109,7 @@ impl App {
         tracks
     }
 
+    /// Save tracks to "tracks_cache.json".
     fn save_tracks_to_cache(tracks: &[track::track::Track]) -> Result<(), Box<dyn std::error::Error>> {
         let cache_path = "tracks_cache.json";
         let json = serde_json::to_string_pretty(tracks)?;
@@ -111,14 +117,16 @@ impl App {
         Ok(())
     }
 
+    /// Rescan music directories and update the track list.
     pub fn rescan_tracks(&mut self) {
         self.audio.tracks = Self::scan_tracks(&self.settings);
         // Reset selected track if out of bounds
-        if self.ui.main.selected_track() >= self.audio.tracks.len() {
+        if self.ui.main.selected_track >= self.audio.tracks.len() {
             self.ui.main.select_previous();
         }
     }
 
+    /// Load playlists from "playlists.json".
     pub fn load_playlists(&self) -> Vec<Vec<usize>> {
         let path = "playlists.json";
         if let Ok(contents) = std::fs::read_to_string(path) {
@@ -129,6 +137,7 @@ impl App {
         vec![]
     }
 
+    /// Save current playlists to "playlists.json".
     pub fn save_playlists(&self) -> Result<(), Box<dyn std::error::Error>> {
         let path = "playlists.json";
         let json = serde_json::to_string_pretty(&self.audio.playlists)?;
@@ -136,6 +145,7 @@ impl App {
         Ok(())
     }
 
+    /// Run the main application loop.
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         while !self.exit {
             terminal.draw(|frame| self.draw(frame))?;
@@ -144,6 +154,7 @@ impl App {
         Ok(())
     }
 
+    /// Draw the current UI state to the terminal frame.
     fn draw(&self, frame: &mut Frame) {
         // Always render base screen
         match self.ui.screen {
@@ -158,11 +169,12 @@ impl App {
             }
         }
 
-        if self.ui.show_debug() {
+        if self.ui.show_debug {
             Paragraph::new(format!("{self:#?}")).render(frame.area(), frame.buffer_mut());
         }
     }
 
+    /// Handle input events.
     fn handle_events(&mut self) -> io::Result<()> {
         match event::read()? {
             // it's important to check that the event is a key press event as
@@ -175,6 +187,7 @@ impl App {
         Ok(())
     }
 
+    /// Handle a key event based on the current UI state.
     fn handle_key_event(&mut self, key_event: KeyEvent) {
         // Handle overlays first
         if let Some(overlay) = &self.ui.overlay {
@@ -188,14 +201,14 @@ impl App {
         if let Some(action) = self.settings.get_action(&key_event.code) {
             match action {
                 Keymap::ToggleFocus => {
-                    if self.ui.side_bar() {
+                    if self.ui.side_bar {
                         self.ui.toggle_focus();
                     }
                     return;
                 }
                 Keymap::ToggleSidebar => {
                     self.ui.toggle_sidebar();
-                    if !self.ui.side_bar() {
+                    if !self.ui.side_bar {
                         self.ui.focus_main();
                     }
                     return;
@@ -222,8 +235,8 @@ impl App {
             AppScreen::Help => help::handle_key_event(self, key_event),
         }
     }
-
-
+    
+    /// Exit the application, saving necessary state.
     fn exit(&mut self) {
         // Save playlists before exiting
         let _ = self.audio.save_playlists("playlists.json");
@@ -260,12 +273,12 @@ impl Debug for App {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("App")
             .field("settings", &self.settings)
-            .field("settings_index", &self.ui.settings.selected_index())
-            .field("side_bar", &self.ui.side_bar())
+            .field("settings_index", &self.ui.settings.selected_index)
+            .field("side_bar", &self.ui.side_bar)
             .field("screen", &self.ui.screen)
             .field("tracks_count", &self.audio.tracks.len())
-            .field("selected_track", &self.ui.main.selected_track())
-            .field("show_debug", &self.ui.show_debug())
+            .field("selected_track", &self.ui.main.selected_track)
+            .field("show_debug", &self.ui.show_debug)
             .field("exit", &self.exit)
             .finish()
     }

@@ -11,10 +11,8 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
             Focus::MainContent => {
                 match action {
                     Keymap::Play => {
-                        let selected = app.ui.main.selected_track();
-                        if let Some(track) = app.audio.tracks.get(selected).cloned() {
-                            app.audio.play_track(&track);
-                        }
+                        let selected = app.ui.main.selected_track;
+                        app.audio.play_track_by_index(selected);
                         return;
                     }
                     Keymap::Pause => {
@@ -54,9 +52,8 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
             Focus::Sidebar => {
                 match action {
                     Keymap::SelectPlaylist => {
-                        // Switch to selected playlist - clone name to avoid borrow issues
                         let playlist_name = app.audio.playlists()
-                            .get(app.ui.main.selected_playlist())
+                            .get(app.ui.main.selected_playlist)
                             .map(|p| p.name.clone());
 
                         if let Some(name) = playlist_name {
@@ -71,7 +68,7 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
                     }
                     Keymap::DeletePlaylist => {
                         let playlist_name = app.audio.playlists()
-                            .get(app.ui.main.selected_playlist())
+                            .get(app.ui.main.selected_playlist)
                             .map(|p| p.name.clone());
                         if let Some(name) = playlist_name {
                             app.audio.delete_playlist(&name);
@@ -105,9 +102,8 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
                     app.ui.main.select_previous_playlist();
                 }
                 KeyCode::Enter => {
-                    // Switch to selected playlist - clone name to avoid borrow issues
                     let playlist_name = app.audio.playlists()
-                        .get(app.ui.main.selected_playlist())
+                        .get(app.ui.main.selected_playlist)
                         .map(|p| p.name.clone());
 
                     if let Some(name) = playlist_name {

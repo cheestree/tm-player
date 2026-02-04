@@ -11,8 +11,8 @@ pub enum Focus {
 }
 
 pub struct UIState {
-    side_bar: bool,
-    show_debug: bool,
+    pub side_bar: bool,
+    pub show_debug: bool,
     pub focus: Focus,
     pub screen: AppScreen,
     pub overlay: Option<Overlay>,
@@ -35,17 +35,10 @@ impl UIState {
         }
     }
 
-    pub fn side_bar(&self) -> bool {
-        self.side_bar
-    }
-
     pub fn toggle_sidebar(&mut self) {
         self.side_bar = !self.side_bar;
     }
 
-    pub fn show_debug(&self) -> bool {
-        self.show_debug
-    }
 
     pub fn toggle_debug(&mut self) {
         self.show_debug = !self.show_debug;
