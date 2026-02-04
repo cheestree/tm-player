@@ -45,6 +45,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+      - name: Install ALSA development package
+        run: sudo apt-get install -y libasound2-dev
       - name: Run clippy action
         uses: clechasseur/rs-clippy-check@v5
       - name: Cache Cargo dependencies
