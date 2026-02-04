@@ -115,7 +115,8 @@ impl AudioState {
     pub fn get_playlist_data(&self) -> PlaylistData {
         PlaylistData {
             playlists: self.playlists.clone(),
-            current_playlist: self.playlists
+            current_playlist: self
+                .playlists
                 .get(self.current_playlist_index)
                 .map(|p| p.name.clone())
                 .unwrap_or_else(|| "All Tracks".to_string()),
@@ -268,7 +269,8 @@ impl AudioState {
     /// Get track indices for current playlist (for display purposes)
     pub fn get_current_playlist_tracks(&self) -> Vec<usize> {
         if let Some(playlist) = self.playlists.get(self.current_playlist_index) {
-            playlist.track_ids
+            playlist
+                .track_ids
                 .iter()
                 .filter_map(|id| self.track_id_map.get(id).copied())
                 .collect()
@@ -282,7 +284,8 @@ impl AudioState {
         track_ids
             .iter()
             .filter_map(|id| {
-                self.track_id_map.get(id)
+                self.track_id_map
+                    .get(id)
                     .and_then(|&idx| self.tracks.get(idx))
             })
             .collect()

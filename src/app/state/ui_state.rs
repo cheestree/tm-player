@@ -39,7 +39,6 @@ impl UIState {
         self.side_bar = !self.side_bar;
     }
 
-
     pub fn toggle_debug(&mut self) {
         self.show_debug = !self.show_debug;
     }

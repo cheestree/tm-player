@@ -1,4 +1,3 @@
-
 /// State specific to the main screen
 #[derive(Debug)]
 pub struct MainScreenState {

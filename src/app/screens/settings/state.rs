@@ -5,7 +5,6 @@ pub struct SettingsScreenState {
 }
 
 impl SettingsScreenState {
-
     /// Select the next item in the settings list, up to a maximum index.
     pub fn select_next(&mut self, max: usize) {
         if max > 0 {

@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use std::fmt::{Debug, Formatter};
 use crossterm::event::KeyCode;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fmt::{Debug, Formatter};
 
 /// Represents the various actions that can be mapped to keybindings.
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
@@ -62,7 +62,7 @@ pub struct Settings {
 // Custom serialization for HashMap<KeyCode, Keymap>
 mod keymap_serde {
     use super::*;
-    use serde::{Deserializer, Serializer, Deserialize};
+    use serde::{Deserialize, Deserializer, Serializer};
 
     #[derive(Serialize, Deserialize)]
     struct KeymapEntry {
@@ -113,10 +113,7 @@ mod keymap_serde {
         }
     }
 
-    pub fn serialize<S>(
-        keymap: &HashMap<KeyCode, Keymap>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(keymap: &HashMap<KeyCode, Keymap>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -130,9 +127,7 @@ mod keymap_serde {
         entries.serialize(serializer)
     }
 
-    pub fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<HashMap<KeyCode, Keymap>, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<KeyCode, Keymap>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -146,7 +141,12 @@ mod keymap_serde {
 
 /// Implementation of Settings methods for managing application settings.
 impl Settings {
-    pub fn new(music_paths: Vec<String>, volume_level: u8, shuffle: bool, keymap: HashMap<KeyCode, Keymap>) -> Self {
+    pub fn new(
+        music_paths: Vec<String>,
+        volume_level: u8,
+        shuffle: bool,
+        keymap: HashMap<KeyCode, Keymap>,
+    ) -> Self {
         Settings {
             music_paths,
             volume_level,

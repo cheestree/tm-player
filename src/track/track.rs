@@ -27,9 +27,7 @@ impl Hash for Track {
 
 impl PartialEq for Track {
     fn eq(&self, other: &Self) -> bool {
-        self.artist == other.artist
-            && self.album == other.album
-            && self.title == other.title
+        self.artist == other.artist && self.album == other.album && self.title == other.title
     }
 }
 
@@ -65,12 +63,24 @@ impl Track {
 
         let tag = match tagged_file.primary_tag() {
             Some(tag) => tag,
-            None => panic!("No tag found in file!")
+            None => panic!("No tag found in file!"),
         };
         Self {
-            title: tag.title().as_deref().unwrap_or("Unknown Track Title").to_string(),
-            artist: tag.artist().as_deref().unwrap_or("Unknown Artist").to_string(),
-            album: tag.album().as_deref().unwrap_or("Unknown Album").to_string(),
+            title: tag
+                .title()
+                .as_deref()
+                .unwrap_or("Unknown Track Title")
+                .to_string(),
+            artist: tag
+                .artist()
+                .as_deref()
+                .unwrap_or("Unknown Artist")
+                .to_string(),
+            album: tag
+                .album()
+                .as_deref()
+                .unwrap_or("Unknown Album")
+                .to_string(),
             duration: tagged_file.properties().duration(),
             path: path.to_string(),
         }

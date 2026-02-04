@@ -1,7 +1,7 @@
-mod state;
-mod render;
 mod handler;
+mod render;
+mod state;
 
-pub use state::MainScreenState;
-pub use render::render;
 pub use handler::handle_key_event;
+pub use render::render;
+pub use state::MainScreenState;

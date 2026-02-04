@@ -3,7 +3,7 @@
 pub enum AppScreen {
     #[default]
     Main,
-    Help
+    Help,
 }
 
 /// Represents the different overlays in the application.

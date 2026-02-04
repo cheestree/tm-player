@@ -49,69 +49,71 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
                     _ => {}
                 }
             }
-            Focus::Sidebar => {
-                match action {
-                    Keymap::SelectPlaylist => {
-                        let playlist_name = app.audio.playlists()
-                            .get(app.ui.main.selected_playlist)
-                            .map(|p| p.name.clone());
-
-                        if let Some(name) = playlist_name {
-                            app.audio.switch_to_playlist(&name);
-                        }
-                        return;
-                    }
-                    Keymap::CreatePlaylist => {
-                        let playlist_name = format!("New Playlist {}", app.audio.playlists().len() + 1);
-                        app.audio.create_playlist(playlist_name);
-                        return;
-                    }
-                    Keymap::DeletePlaylist => {
-                        let playlist_name = app.audio.playlists()
-                            .get(app.ui.main.selected_playlist)
-                            .map(|p| p.name.clone());
-                        if let Some(name) = playlist_name {
-                            app.audio.delete_playlist(&name);
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
-    }
-
-    // Fallback hardcoded keys - route based on focus
-    match app.ui.focus {
-        Focus::MainContent => {
-            match key_event.code {
-                KeyCode::Down | KeyCode::Char('j') => {
-                    app.ui.main.select_next(app.audio.tracks.len());
-                }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    app.ui.main.select_previous();
-                }
-                _ => {}
-            }
-        }
-        Focus::Sidebar => {
-            match key_event.code {
-                KeyCode::Down | KeyCode::Char('j') => {
-                    app.ui.main.select_next_playlist(app.audio.playlists().len());
-                }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    app.ui.main.select_previous_playlist();
-                }
-                KeyCode::Enter => {
-                    let playlist_name = app.audio.playlists()
+            Focus::Sidebar => match action {
+                Keymap::SelectPlaylist => {
+                    let playlist_name = app
+                        .audio
+                        .playlists()
                         .get(app.ui.main.selected_playlist)
                         .map(|p| p.name.clone());
 
                     if let Some(name) = playlist_name {
                         app.audio.switch_to_playlist(&name);
                     }
+                    return;
+                }
+                Keymap::CreatePlaylist => {
+                    let playlist_name = format!("New Playlist {}", app.audio.playlists().len() + 1);
+                    app.audio.create_playlist(playlist_name);
+                    return;
+                }
+                Keymap::DeletePlaylist => {
+                    let playlist_name = app
+                        .audio
+                        .playlists()
+                        .get(app.ui.main.selected_playlist)
+                        .map(|p| p.name.clone());
+                    if let Some(name) = playlist_name {
+                        app.audio.delete_playlist(&name);
+                    }
                 }
                 _ => {}
-            }
+            },
         }
+    }
+
+    // Fallback hardcoded keys - route based on focus
+    match app.ui.focus {
+        Focus::MainContent => match key_event.code {
+            KeyCode::Down | KeyCode::Char('j') => {
+                app.ui.main.select_next(app.audio.tracks.len());
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                app.ui.main.select_previous();
+            }
+            _ => {}
+        },
+        Focus::Sidebar => match key_event.code {
+            KeyCode::Down | KeyCode::Char('j') => {
+                app.ui
+                    .main
+                    .select_next_playlist(app.audio.playlists().len());
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                app.ui.main.select_previous_playlist();
+            }
+            KeyCode::Enter => {
+                let playlist_name = app
+                    .audio
+                    .playlists()
+                    .get(app.ui.main.selected_playlist)
+                    .map(|p| p.name.clone());
+
+                if let Some(name) = playlist_name {
+                    app.audio.switch_to_playlist(&name);
+                }
+            }
+            _ => {}
+        },
     }
 }

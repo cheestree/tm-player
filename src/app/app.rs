@@ -1,6 +1,6 @@
 use crate::app::app_screen::{AppScreen, Overlay};
-use crate::app::state::{AudioState, UIState};
 use crate::app::screens::{help, main, settings};
+use crate::app::state::{AudioState, UIState};
 use crate::settings::settings::{Keymap, Settings};
 use crate::track;
 use cli_log::init_cli_log;
@@ -57,12 +57,7 @@ impl App {
             }
         }
 
-        let default_settings = Settings::new(
-            vec![],
-            50,
-            false,
-            Self::default_keymap()
-        );
+        let default_settings = Settings::new(vec![], 50, false, Self::default_keymap());
 
         if let Ok(json) = serde_json::to_string_pretty(&default_settings) {
             let _ = std::fs::write(path, json);
@@ -100,8 +95,13 @@ impl App {
     pub fn scan_tracks(settings: &Settings) -> Vec<track::track::Track> {
         let mut tracks = Vec::new();
         for path in &settings.music_paths {
-            let track_paths = track::utils::get_audio_file_paths_in_directory(&path);
-            tracks.extend(track_paths.iter().map(|t| track::track::Track::new(t)).collect::<Vec<track::track::Track>>());
+            let track_paths = track::utils::get_audio_file_paths_in_directory(path);
+            tracks.extend(
+                track_paths
+                    .iter()
+                    .map(|t| track::track::Track::new(t))
+                    .collect::<Vec<track::track::Track>>(),
+            );
         }
 
         let _ = Self::save_tracks_to_cache(&tracks);
@@ -110,7 +110,9 @@ impl App {
     }
 
     /// Save tracks to "tracks_cache.json".
-    fn save_tracks_to_cache(tracks: &[track::track::Track]) -> Result<(), Box<dyn std::error::Error>> {
+    fn save_tracks_to_cache(
+        tracks: &[track::track::Track],
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let cache_path = "tracks_cache.json";
         let json = serde_json::to_string_pretty(tracks)?;
         std::fs::write(cache_path, json)?;
@@ -158,14 +160,14 @@ impl App {
     fn draw(&self, frame: &mut Frame) {
         // Always render base screen
         match self.ui.screen {
-            AppScreen::Main => main::render(frame.area(), frame.buffer_mut(), &self),
-            AppScreen::Help => help::render(frame.area(), frame.buffer_mut(), &self),
+            AppScreen::Main => main::render(frame.area(), frame.buffer_mut(), self),
+            AppScreen::Help => help::render(frame.area(), frame.buffer_mut(), self),
         }
 
         // Render overlay if present
         if let Some(overlay) = &self.ui.overlay {
             match overlay {
-                Overlay::Settings => settings::render(frame.area(), frame.buffer_mut(), &self),
+                Overlay::Settings => settings::render(frame.area(), frame.buffer_mut(), self),
             }
         }
 
@@ -235,7 +237,7 @@ impl App {
             AppScreen::Help => help::handle_key_event(self, key_event),
         }
     }
-    
+
     /// Exit the application, saving necessary state.
     fn exit(&mut self) {
         // Save playlists before exiting
@@ -250,9 +252,10 @@ impl Default for App {
         let settings = App::load_settings();
         let tracks = App::load_tracks(&settings);
 
-        let audio_stream = OutputStreamBuilder::open_default_stream().expect("open default audio stream");
-        let audio_sink = Arc::new(Mutex::new(rodio::Sink::connect_new(&audio_stream.mixer())));
-        
+        let audio_stream =
+            OutputStreamBuilder::open_default_stream().expect("open default audio stream");
+        let audio_sink = Arc::new(Mutex::new(rodio::Sink::connect_new(audio_stream.mixer())));
+
         // Try to load playlists, otherwise create default
         let audio = if let Ok(playlist_data) = AudioState::load_playlists("playlists.json") {
             AudioState::with_playlists(tracks, audio_stream, audio_sink, playlist_data)
