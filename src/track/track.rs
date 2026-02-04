@@ -2,6 +2,7 @@ use lofty::file::{AudioFile, TaggedFileExt};
 use lofty::prelude::Accessor;
 use lofty::probe::Probe;
 use serde::{Deserialize, Serialize};
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Track {
@@ -12,6 +13,26 @@ pub struct Track {
     pub duration: core::time::Duration,
     pub path: String,
 }
+
+// Implement Hash and Eq based on metadata (artist, album, title)
+// This makes the ID stable even if the file is moved or renamed
+impl Hash for Track {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.artist.hash(state);
+        self.album.hash(state);
+        self.title.hash(state);
+    }
+}
+
+impl PartialEq for Track {
+    fn eq(&self, other: &Self) -> bool {
+        self.artist == other.artist
+            && self.album == other.album
+            && self.title == other.title
+    }
+}
+
+impl Eq for Track {}
 
 // Custom serialization for Duration
 mod duration_serde {
@@ -52,6 +73,17 @@ impl Track {
             duration: tagged_file.properties().duration(),
             path: path.to_string(),
         }
+    }
+
+    /// Returns a unique ID for this track based on its metadata (artist, album, title).
+    /// This ID remains stable even if the file is moved or renamed, as long as
+    /// the metadata tags stay the same. Two copies of the same song will have
+    /// the same ID.
+    pub fn get_id(&self) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+        hasher.finish()
     }
 
     pub fn display_info(&self) {

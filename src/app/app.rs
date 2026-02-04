@@ -34,7 +34,12 @@ impl App {
         map.insert(KeyCode::Up, Keymap::VolumeUp);
         map.insert(KeyCode::Down, Keymap::VolumeDown);
         map.insert(KeyCode::Char('r'), Keymap::Rescan);
+        // Sidebar actions
+        map.insert(KeyCode::Char('l'), Keymap::SelectPlaylist);
+        map.insert(KeyCode::Char('c'), Keymap::CreatePlaylist);
+        map.insert(KeyCode::Char('x'), Keymap::DeletePlaylist);
         // Global UI actions
+        map.insert(KeyCode::Tab, Keymap::ToggleFocus);
         map.insert(KeyCode::Char('d'), Keymap::ToggleSidebar);
         map.insert(KeyCode::Char('p'), Keymap::ToggleDebug);
         map.insert(KeyCode::Char('s'), Keymap::OpenSettings);
@@ -114,6 +119,23 @@ impl App {
         }
     }
 
+    pub fn load_playlists(&self) -> Vec<Vec<usize>> {
+        let path = "playlists.json";
+        if let Ok(contents) = std::fs::read_to_string(path) {
+            if let Ok(playlists) = serde_json::from_str::<Vec<Vec<usize>>>(&contents) {
+                return playlists;
+            }
+        }
+        vec![]
+    }
+
+    pub fn save_playlists(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let path = "playlists.json";
+        let json = serde_json::to_string_pretty(&self.audio.playlists)?;
+        std::fs::write(path, json)?;
+        Ok(())
+    }
+
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         while !self.exit {
             terminal.draw(|frame| self.draw(frame))?;
@@ -165,8 +187,17 @@ impl App {
         // Check if key is bound to any global action
         if let Some(action) = self.settings.get_action(&key_event.code) {
             match action {
+                Keymap::ToggleFocus => {
+                    if self.ui.side_bar() {
+                        self.ui.toggle_focus();
+                    }
+                    return;
+                }
                 Keymap::ToggleSidebar => {
                     self.ui.toggle_sidebar();
+                    if !self.ui.side_bar() {
+                        self.ui.focus_main();
+                    }
                     return;
                 }
                 Keymap::ToggleDebug => {
@@ -194,6 +225,8 @@ impl App {
 
 
     fn exit(&mut self) {
+        // Save playlists before exiting
+        let _ = self.audio.save_playlists("playlists.json");
         self.exit = true;
     }
 }
@@ -207,9 +240,16 @@ impl Default for App {
         let audio_stream = OutputStreamBuilder::open_default_stream().expect("open default audio stream");
         let audio_sink = Arc::new(Mutex::new(rodio::Sink::connect_new(&audio_stream.mixer())));
         
+        // Try to load playlists, otherwise create default
+        let audio = if let Ok(playlist_data) = AudioState::load_playlists("playlists.json") {
+            AudioState::with_playlists(tracks, audio_stream, audio_sink, playlist_data)
+        } else {
+            AudioState::new(tracks, audio_stream, audio_sink)
+        };
+
         Self {
             settings,
-            audio: AudioState::new(tracks, audio_stream, audio_sink),
+            audio,
             ui: UIState::new(),
             exit: false,
         }

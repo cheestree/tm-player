@@ -3,9 +3,17 @@ use crate::app::screens::help::HelpScreenState;
 use crate::app::screens::main::MainScreenState;
 use crate::app::screens::settings::SettingsScreenState;
 
+/// Which panel currently has focus
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Focus {
+    Sidebar,
+    MainContent,
+}
+
 pub struct UIState {
     side_bar: bool,
     show_debug: bool,
+    pub focus: Focus,
     pub screen: AppScreen,
     pub overlay: Option<Overlay>,
     pub main: MainScreenState,
@@ -18,6 +26,7 @@ impl UIState {
         Self {
             side_bar: true,
             show_debug: false,
+            focus: Focus::MainContent,
             screen: AppScreen::Main,
             overlay: None,
             main: MainScreenState::default(),
@@ -40,5 +49,33 @@ impl UIState {
 
     pub fn toggle_debug(&mut self) {
         self.show_debug = !self.show_debug;
+    }
+
+    /// Toggle focus between sidebar and main content
+    pub fn toggle_focus(&mut self) {
+        self.focus = match self.focus {
+            Focus::Sidebar => Focus::MainContent,
+            Focus::MainContent => Focus::Sidebar,
+        };
+    }
+
+    /// Set focus to sidebar
+    pub fn focus_sidebar(&mut self) {
+        self.focus = Focus::Sidebar;
+    }
+
+    /// Set focus to main content
+    pub fn focus_main(&mut self) {
+        self.focus = Focus::MainContent;
+    }
+
+    /// Check if sidebar has focus
+    pub fn is_sidebar_focused(&self) -> bool {
+        self.focus == Focus::Sidebar
+    }
+
+    /// Check if main content has focus
+    pub fn is_main_focused(&self) -> bool {
+        self.focus == Focus::MainContent
     }
 }

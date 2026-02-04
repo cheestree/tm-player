@@ -4,14 +4,14 @@ use ratatui::widgets::ListState;
 #[derive(Debug)]
 pub struct MainScreenState {
     selected_track: usize,
-    list_state: ListState,
+    selected_playlist: usize,
 }
 
 impl Default for MainScreenState {
     fn default() -> Self {
         Self {
             selected_track: 0,
-            list_state: ListState::default(),
+            selected_playlist: 0,
         }
     }
 }
@@ -19,6 +19,10 @@ impl Default for MainScreenState {
 impl MainScreenState {
     pub fn selected_track(&self) -> usize {
         self.selected_track
+    }
+
+    pub fn selected_playlist(&self) -> usize {
+        self.selected_playlist
     }
 
     pub fn select_next(&mut self, max: usize) {
@@ -29,5 +33,15 @@ impl MainScreenState {
 
     pub fn select_previous(&mut self) {
         self.selected_track = self.selected_track.saturating_sub(1);
+    }
+
+    pub fn select_next_playlist(&mut self, max: usize) {
+        if max > 0 {
+            self.selected_playlist = (self.selected_playlist + 1).min(max - 1);
+        }
+    }
+
+    pub fn select_previous_playlist(&mut self) {
+        self.selected_playlist = self.selected_playlist.saturating_sub(1);
     }
 }
