@@ -1,7 +1,7 @@
 use crate::app::app_screen::{AppScreen, Overlay};
 use crate::app::screens::help::HelpScreenState;
 use crate::app::screens::main::MainScreenState;
-use crate::app::screens::settings::SettingsScreenState;
+use crate::app::screens::overlay::settings::SettingsScreenState;
 
 /// Which panel currently has focus
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -52,6 +52,7 @@ impl UIState {
     }
 
     /// Set focus to sidebar
+    #[allow(dead_code)]
     pub fn focus_sidebar(&mut self) {
         self.focus = Focus::Sidebar;
     }

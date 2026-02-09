@@ -1,4 +1,5 @@
 use crate::app::app::App;
+use crate::app::app_screen::Overlay;
 use crate::app::state::Focus;
 use crate::settings::settings::Keymap;
 use crossterm::event::{KeyCode, KeyEvent};
@@ -53,7 +54,7 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
                 Keymap::SelectPlaylist => {
                     let playlist_name = app
                         .audio
-                        .playlists()
+                        .playlists
                         .get(app.ui.main.selected_playlist)
                         .map(|p| p.name.clone());
 
@@ -63,19 +64,29 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
                     return;
                 }
                 Keymap::CreatePlaylist => {
-                    let playlist_name = format!("New Playlist {}", app.audio.playlists().len() + 1);
+                    let playlist_name = format!("New Playlist {}", app.audio.playlists.len() + 1);
                     app.audio.create_playlist(playlist_name);
                     return;
                 }
                 Keymap::DeletePlaylist => {
                     let playlist_name = app
                         .audio
-                        .playlists()
+                        .playlists
                         .get(app.ui.main.selected_playlist)
                         .map(|p| p.name.clone());
+
                     if let Some(name) = playlist_name {
-                        app.audio.delete_playlist(&name);
+                        use crate::app::app_screen::ConfirmAction;
+                        app.ui.overlay = Some(Overlay::AreYouSure {
+                            title: "Delete Playlist".to_string(),
+                            description: Some(format!(
+                                "Are you sure you want to delete the playlist '{}'?",
+                                name
+                            )),
+                            action: ConfirmAction::DeletePlaylist(name),
+                        });
                     }
+                    return;
                 }
                 _ => {}
             },
@@ -95,9 +106,7 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
         },
         Focus::Sidebar => match key_event.code {
             KeyCode::Down | KeyCode::Char('j') => {
-                app.ui
-                    .main
-                    .select_next_playlist(app.audio.playlists().len());
+                app.ui.main.select_next_playlist(app.audio.playlists.len());
             }
             KeyCode::Up | KeyCode::Char('k') => {
                 app.ui.main.select_previous_playlist();
@@ -105,7 +114,7 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
             KeyCode::Enter => {
                 let playlist_name = app
                     .audio
-                    .playlists()
+                    .playlists
                     .get(app.ui.main.selected_playlist)
                     .map(|p| p.name.clone());
 

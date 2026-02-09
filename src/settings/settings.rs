@@ -30,16 +30,16 @@ pub enum Keymap {
 impl Keymap {
     pub fn as_str(&self) -> &'static str {
         match self {
-            Keymap::Play => "Play",
-            Keymap::Pause => "Pause",
-            Keymap::NextTrack => "Next Track",
-            Keymap::PreviousTrack => "Previous Track",
-            Keymap::VolumeUp => "Volume Up",
-            Keymap::VolumeDown => "Volume Down",
-            Keymap::Rescan => "Rescan Tracks",
-            Keymap::SelectPlaylist => "Select Playlist",
-            Keymap::CreatePlaylist => "Create Playlist",
-            Keymap::DeletePlaylist => "Delete Playlist",
+            Keymap::Play => "▶",
+            Keymap::Pause => "⏸",
+            Keymap::NextTrack => "⏭",
+            Keymap::PreviousTrack => "⏮",
+            Keymap::VolumeUp => "+",
+            Keymap::VolumeDown => "−",
+            Keymap::SelectPlaylist => "Pl",
+            Keymap::CreatePlaylist => "+Pl",
+            Keymap::DeletePlaylist => "Del",
+            Keymap::Rescan => "Rescan",
             Keymap::ToggleSidebar => "Toggle Sidebar",
             Keymap::ToggleFocus => "Toggle Focus",
             Keymap::ToggleDebug => "Toggle Debug",
@@ -161,11 +161,13 @@ impl Settings {
     }
 
     /// Sets or updates the keybinding for a given action.
+    #[allow(dead_code)]
     pub fn set_keybind(&mut self, keycode: KeyCode, action: Keymap) {
         self.keymap.insert(keycode, action);
     }
 
     /// Removes the keybinding for the specified keycode.
+    #[allow(dead_code)]
     pub fn remove_keybind(&mut self, keycode: &KeyCode) {
         self.keymap.remove(keycode);
     }
@@ -179,26 +181,31 @@ impl Settings {
     }
 
     /// Sets the list of music paths.
+    #[allow(dead_code)]
     pub fn set_music_paths(&mut self, paths: Vec<String>) {
         self.music_paths = paths;
     }
 
     /// Adds a new music path to the list.
+    #[allow(dead_code)]
     pub fn add_music_path(&mut self, path: String) {
         self.music_paths.push(path);
     }
 
     /// Sets the volume level, ensuring it does not exceed 100.
+    #[allow(dead_code)]
     pub fn set_volume_level(&mut self, level: u8) {
         self.volume_level = level.min(100);
     }
 
     /// Shuffle setting management
+    #[allow(dead_code)]
     pub fn set_shuffle(&mut self, enabled: bool) {
         self.shuffle = enabled;
     }
 
     /// Toggles the shuffle setting.
+    #[allow(dead_code)]
     pub fn toggle_shuffle(&mut self) {
         self.shuffle = !self.shuffle;
     }

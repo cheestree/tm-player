@@ -97,6 +97,7 @@ impl Track {
         hasher.finish()
     }
 
+    #[allow(dead_code)]
     pub fn display_info(&self) {
         println!("Title: {}", self.title);
         println!("Artist: {}", self.artist);

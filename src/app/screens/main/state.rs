@@ -1,17 +1,8 @@
 /// State specific to the main screen
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MainScreenState {
     pub selected_track: usize,
     pub selected_playlist: usize,
-}
-
-impl Default for MainScreenState {
-    fn default() -> Self {
-        Self {
-            selected_track: 0,
-            selected_playlist: 0,
-        }
-    }
 }
 
 impl MainScreenState {

@@ -162,6 +162,7 @@ impl AudioState {
     }
 
     /// Get the currently playing track
+    #[allow(dead_code)]
     pub fn get_current_track(&self) -> Option<&Track> {
         let playlist = self.playlists.get(self.current_playlist_index)?;
         let track_id = playlist.track_ids.get(self.current_track_position)?;
@@ -169,19 +170,21 @@ impl AudioState {
         self.tracks.get(*track_index)
     }
 
-    /// Set current track by library index (finds it in current playlist)
+    /// Set the current track by index
+    #[allow(dead_code)]
     pub fn set_current_track(&mut self, track_index: usize) {
         if let Some(track) = self.tracks.get(track_index) {
             let track_id = track.get_id();
-            if let Some(playlist) = self.playlists.get(self.current_playlist_index) {
-                if let Some(pos) = playlist.track_ids.iter().position(|&id| id == track_id) {
-                    self.current_track_position = pos;
-                }
+            if let Some(playlist) = self.playlists.get(self.current_playlist_index)
+                && let Some(pos) = playlist.track_ids.iter().position(|&id| id == track_id)
+            {
+                self.current_track_position = pos;
             }
         }
     }
 
-    /// Move to next track in current playlist
+    /// Move to the next track in the playlist
+    #[allow(dead_code)]
     pub fn next_track(&mut self) -> Option<&Track> {
         let playlist = self.playlists.get(self.current_playlist_index)?;
         if playlist.track_ids.is_empty() {
@@ -191,7 +194,8 @@ impl AudioState {
         self.get_current_track()
     }
 
-    /// Move to previous track in current playlist
+    /// Move to the previous track in the playlist
+    #[allow(dead_code)]
     pub fn previous_track(&mut self) -> Option<&Track> {
         let playlist = self.playlists.get(self.current_playlist_index)?;
         if playlist.track_ids.is_empty() {
@@ -205,14 +209,10 @@ impl AudioState {
         self.get_current_track()
     }
 
-    /// Get current playlist
+    /// Get the current playlist
+    #[allow(dead_code)]
     pub fn current_playlist(&self) -> Option<&Playlist> {
         self.playlists.get(self.current_playlist_index)
-    }
-
-    /// Get all playlists
-    pub fn playlists(&self) -> &[Playlist] {
-        &self.playlists
     }
 
     /// Switch to a different playlist by name
@@ -229,19 +229,21 @@ impl AudioState {
         self.playlists.push(playlist);
     }
 
-    /// Add track to a playlist by name
+    /// Add a track to a specific playlist
+    #[allow(dead_code)]
     pub fn add_track_to_playlist(&mut self, playlist_name: &str, track_index: usize) {
         if let Some(track) = self.tracks.get(track_index) {
             let track_id = track.get_id();
-            if let Some(playlist) = self.playlists.iter_mut().find(|p| p.name == playlist_name) {
-                if !playlist.track_ids.contains(&track_id) {
-                    playlist.track_ids.push(track_id);
-                }
+            if let Some(playlist) = self.playlists.iter_mut().find(|p| p.name == playlist_name)
+                && !playlist.track_ids.contains(&track_id)
+            {
+                playlist.track_ids.push(track_id);
             }
         }
     }
 
-    /// Remove track from a playlist
+    /// Remove a track from a specific playlist
+    #[allow(dead_code)]
     pub fn remove_track_from_playlist(&mut self, playlist_name: &str, track_id: u64) {
         if let Some(playlist) = self.playlists.iter_mut().find(|p| p.name == playlist_name) {
             playlist.track_ids.retain(|&id| id != track_id);
@@ -266,7 +268,8 @@ impl AudioState {
         }
     }
 
-    /// Get track indices for current playlist (for display purposes)
+    /// Get all track indices in the current playlist
+    #[allow(dead_code)]
     pub fn get_current_playlist_tracks(&self) -> Vec<usize> {
         if let Some(playlist) = self.playlists.get(self.current_playlist_index) {
             playlist

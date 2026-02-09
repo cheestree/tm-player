@@ -11,7 +11,7 @@ use ratatui::{
 };
 
 pub fn render(area: Rect, buf: &mut Buffer, app: &App) {
-    let sidebar_width = if app.ui.side_bar { 50 } else { 0 };
+    let sidebar_width = if app.ui.side_bar { 30 } else { 0 };
 
     // Sidebar rendering
     if app.ui.side_bar {
@@ -43,8 +43,7 @@ fn build_main_keybinding_line(app: &App) -> Line<'static> {
     if !app.ui.is_main_focused() {
         return Line::from("");
     }
-    let mut spans = Vec::new();
-    spans.push(Span::raw(" "));
+    let mut spans = vec![Span::raw(" ")];
 
     let action_order = [
         Keymap::Play,
@@ -69,7 +68,6 @@ fn build_sidebar_keybinding_line(app: &App) -> Line<'static> {
     let mut spans = vec![Span::raw(" ")];
 
     let action_order = [
-        Keymap::SelectPlaylist,
         Keymap::CreatePlaylist,
         Keymap::DeletePlaylist,
     ];
@@ -117,7 +115,7 @@ fn build_keybinding_line<'a>(
 }
 
 fn render_sidebar(area: Rect, buf: &mut Buffer, app: &App) {
-    let playlists = app.audio.playlists();
+    let playlists = &app.audio.playlists;
 
     let items: Vec<ListItem> = playlists
         .iter()

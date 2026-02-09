@@ -12,18 +12,16 @@ pub fn get_audio_file_paths_in_directory(path: &str) -> Vec<String> {
 
 fn get_files_recursively(path: &str, files: &mut Vec<String>) {
     if let Ok(entries) = fs::read_dir(path) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let file_path = entry.path();
-                if file_path.is_dir() {
-                    if let Some(dir_str) = file_path.to_str() {
-                        get_files_recursively(dir_str, files);
-                    }
-                } else if let Some(file_str) = file_path.to_str() {
-                    if is_audio_file(file_str) {
-                        files.push(file_str.to_string());
-                    }
+        for entry in entries.flatten() {
+            let file_path = entry.path();
+            if file_path.is_dir() {
+                if let Some(dir_str) = file_path.to_str() {
+                    get_files_recursively(dir_str, files);
                 }
+            } else if let Some(file_str) = file_path.to_str()
+                && is_audio_file(file_str)
+            {
+                files.push(file_str.to_string());
             }
         }
     }

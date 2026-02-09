@@ -1,5 +1,5 @@
 use crate::app::app_screen::{AppScreen, Overlay};
-use crate::app::screens::{help, main, settings};
+use crate::app::screens::{help, main, overlay};
 use crate::app::state::{AudioState, UIState};
 use crate::settings::settings::{Keymap, Settings};
 use crate::track;
@@ -35,7 +35,6 @@ impl App {
         map.insert(KeyCode::Down, Keymap::VolumeDown);
         map.insert(KeyCode::Char('r'), Keymap::Rescan);
         // Sidebar actions
-        map.insert(KeyCode::Char('l'), Keymap::SelectPlaylist);
         map.insert(KeyCode::Char('c'), Keymap::CreatePlaylist);
         map.insert(KeyCode::Char('x'), Keymap::DeletePlaylist);
         // Global UI actions
@@ -51,10 +50,10 @@ impl App {
     pub fn load_settings() -> Settings {
         let path = "settings.json";
 
-        if let Ok(contents) = std::fs::read_to_string(path) {
-            if let Ok(settings) = serde_json::from_str::<Settings>(&contents) {
-                return settings;
-            }
+        if let Ok(contents) = std::fs::read_to_string(path)
+            && let Ok(settings) = serde_json::from_str::<Settings>(&contents)
+        {
+            return settings;
         }
 
         let default_settings = Settings::new(vec![], 50, false, Self::default_keymap());
@@ -67,6 +66,7 @@ impl App {
     }
 
     /// Save current settings to "settings.json".
+    #[allow(dead_code)]
     pub fn save_settings(&self) -> Result<(), Box<dyn std::error::Error>> {
         let path = "settings.json";
         let json = serde_json::to_string_pretty(&self.settings)?;
@@ -129,17 +129,19 @@ impl App {
     }
 
     /// Load playlists from "playlists.json".
+    #[allow(dead_code)]
     pub fn load_playlists(&self) -> Vec<Vec<usize>> {
         let path = "playlists.json";
-        if let Ok(contents) = std::fs::read_to_string(path) {
-            if let Ok(playlists) = serde_json::from_str::<Vec<Vec<usize>>>(&contents) {
-                return playlists;
-            }
+        if let Ok(contents) = std::fs::read_to_string(path)
+            && let Ok(playlists) = serde_json::from_str::<Vec<Vec<usize>>>(&contents)
+        {
+            return playlists;
         }
         vec![]
     }
 
     /// Save current playlists to "playlists.json".
+    #[allow(dead_code)]
     pub fn save_playlists(&self) -> Result<(), Box<dyn std::error::Error>> {
         let path = "playlists.json";
         let json = serde_json::to_string_pretty(&self.audio.playlists)?;
@@ -165,10 +167,8 @@ impl App {
         }
 
         // Render overlay if present
-        if let Some(overlay) = &self.ui.overlay {
-            match overlay {
-                Overlay::Settings => settings::render(frame.area(), frame.buffer_mut(), self),
-            }
+        if let Some(ref overlay_type) = self.ui.overlay {
+            overlay::render(frame.area(), frame.buffer_mut(), self, overlay_type);
         }
 
         if self.ui.show_debug {
@@ -192,10 +192,8 @@ impl App {
     /// Handle a key event based on the current UI state.
     fn handle_key_event(&mut self, key_event: KeyEvent) {
         // Handle overlays first
-        if let Some(overlay) = &self.ui.overlay {
-            match overlay {
-                Overlay::Settings => settings::handle_key_event(self, key_event),
-            }
+        if let Some(ref overlay_type) = self.ui.overlay.clone() {
+            overlay::handle_key_event(self, key_event, overlay_type);
             return;
         }
 
