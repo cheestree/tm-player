@@ -9,15 +9,22 @@ pub enum Keymap {
     // Playback actions
     Play,
     Pause,
+    SelectNextTrack,
+    SelectPreviousTrack,
     NextTrack,
     PreviousTrack,
     VolumeUp,
     VolumeDown,
     Rescan,
+    Sort,
+    ToggleShuffle,
     // Sidebar actions
     SelectPlaylist,
     CreatePlaylist,
     DeletePlaylist,
+    RenamePlaylist,
+    // Track actions
+    OpenActionMenu,
     // Global UI actions
     ToggleSidebar,
     ToggleFocus,
@@ -32,6 +39,8 @@ impl Keymap {
         match self {
             Keymap::Play => "▶",
             Keymap::Pause => "⏸",
+            Keymap::SelectNextTrack => "↑",
+            Keymap::SelectPreviousTrack => "↓",
             Keymap::NextTrack => "⏭",
             Keymap::PreviousTrack => "⏮",
             Keymap::VolumeUp => "+",
@@ -39,7 +48,11 @@ impl Keymap {
             Keymap::SelectPlaylist => "Pl",
             Keymap::CreatePlaylist => "+Pl",
             Keymap::DeletePlaylist => "Del",
+            Keymap::RenamePlaylist => "Rename",
             Keymap::Rescan => "Rescan",
+            Keymap::Sort => "Sort",
+            Keymap::ToggleShuffle => "🔀",
+            Keymap::OpenActionMenu => "Menu",
             Keymap::ToggleSidebar => "Toggle Sidebar",
             Keymap::ToggleFocus => "Toggle Focus",
             Keymap::ToggleDebug => "Toggle Debug",

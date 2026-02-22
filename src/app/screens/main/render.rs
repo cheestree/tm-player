@@ -1,4 +1,6 @@
 use crate::app::app::App;
+use crate::app::screens::main::state::TrackSort;
+use crate::app::screens::main::utils::compute_sorted_indices;
 use crate::settings::settings::Keymap;
 use crossterm::event::KeyCode;
 use ratatui::layout::Constraint;
@@ -48,8 +50,12 @@ fn build_main_keybinding_line(app: &App) -> Line<'static> {
     let action_order = [
         Keymap::Play,
         Keymap::Pause,
+        Keymap::OpenActionMenu,
+        Keymap::SelectNextTrack,
+        Keymap::SelectPreviousTrack,
         Keymap::NextTrack,
         Keymap::PreviousTrack,
+        Keymap::ToggleShuffle,
         Keymap::VolumeUp,
         Keymap::VolumeDown,
     ];
@@ -69,6 +75,7 @@ fn build_sidebar_keybinding_line(app: &App) -> Line<'static> {
 
     let action_order = [
         Keymap::CreatePlaylist,
+        Keymap::RenamePlaylist,
         Keymap::DeletePlaylist,
     ];
 
@@ -158,13 +165,17 @@ fn render_sidebar(area: Rect, buf: &mut Buffer, app: &App) {
 fn render_main_content(area: Rect, buf: &mut Buffer, app: &App) {
     let tracks = app.audio.get_playlist_tracks(app.ui.main.selected_playlist);
 
-    let rows: Vec<Row> = tracks
+    // Compute sorted indices
+    let sorted_indices =
+        compute_sorted_indices(&tracks, &app.ui.main.sorted_by, app.ui.main.sort_ascending);
+
+    let rows: Vec<Row> = sorted_indices
         .iter()
+        .filter_map(|&idx| tracks.get(idx))
         .map(|track| {
             let total_secs = track.duration.as_secs();
             let minutes = total_secs / 60;
             let seconds = total_secs % 60;
-            // Use Cell to avoid cloning - Cell accepts &str
             Row::new(vec![
                 Cell::from(&track.artist[..]),
                 Cell::from(&track.title[..]),
@@ -186,6 +197,35 @@ fn render_main_content(area: Rect, buf: &mut Buffer, app: &App) {
         Line::from("My Tracks")
     };
 
+    let mut header_cells = vec![
+        "Artist".to_string(),
+        "Title".to_string(),
+        "Album".to_string(),
+        "Duration".to_string(),
+    ];
+    if let Some(sorted_column) = match app.ui.main.sorted_by {
+        Some(TrackSort::Artist) => Some(0),
+        Some(TrackSort::Title) => Some(1),
+        Some(TrackSort::Album) => Some(2),
+        Some(TrackSort::Duration) => Some(3),
+        _ => None,
+    } {
+        if sorted_column < header_cells.len() {
+            let arrow = if app.ui.main.sort_ascending {
+                " ▲"
+            } else {
+                " ▼"
+            };
+            header_cells[sorted_column].push_str(arrow);
+        }
+    }
+
+    let header = Row::new(header_cells).style(
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD),
+    );
+
     let table = Table::new(
         rows,
         [
@@ -195,13 +235,7 @@ fn render_main_content(area: Rect, buf: &mut Buffer, app: &App) {
             Constraint::Percentage(10), // Duration
         ],
     )
-    .header(
-        Row::new(vec!["Artist", "Title", "Album", "Duration"]).style(
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-        ),
-    )
+    .header(header)
     .block(
         Block::default()
             .borders(Borders::ALL)

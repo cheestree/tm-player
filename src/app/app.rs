@@ -29,19 +29,26 @@ impl App {
         // Playback actions
         map.insert(KeyCode::Enter, Keymap::Play);
         map.insert(KeyCode::Char(' '), Keymap::Pause);
-        map.insert(KeyCode::Right, Keymap::NextTrack);
+        map.insert(KeyCode::Down, Keymap::SelectNextTrack);
+        map.insert(KeyCode::Up, Keymap::SelectPreviousTrack);
         map.insert(KeyCode::Left, Keymap::PreviousTrack);
-        map.insert(KeyCode::Up, Keymap::VolumeUp);
-        map.insert(KeyCode::Down, Keymap::VolumeDown);
+        map.insert(KeyCode::Right, Keymap::NextTrack);
+        map.insert(KeyCode::Char('='), Keymap::VolumeUp);
+        map.insert(KeyCode::Char('-'), Keymap::VolumeDown);
         map.insert(KeyCode::Char('r'), Keymap::Rescan);
+        map.insert(KeyCode::Char('s'), Keymap::Sort);
+        map.insert(KeyCode::Char('z'), Keymap::ToggleShuffle);
+        // Track actions
+        map.insert(KeyCode::Char('a'), Keymap::OpenActionMenu);
         // Sidebar actions
         map.insert(KeyCode::Char('c'), Keymap::CreatePlaylist);
         map.insert(KeyCode::Char('x'), Keymap::DeletePlaylist);
+        map.insert(KeyCode::Char('e'), Keymap::RenamePlaylist);
         // Global UI actions
         map.insert(KeyCode::Tab, Keymap::ToggleFocus);
         map.insert(KeyCode::Char('d'), Keymap::ToggleSidebar);
         map.insert(KeyCode::Char('p'), Keymap::ToggleDebug);
-        map.insert(KeyCode::Char('s'), Keymap::OpenSettings);
+        map.insert(KeyCode::Char('\''), Keymap::OpenSettings);
         map.insert(KeyCode::Char('q'), Keymap::Quit);
         map
     }
@@ -128,25 +135,10 @@ impl App {
         }
     }
 
-    /// Load playlists from "playlists.json".
-    #[allow(dead_code)]
-    pub fn load_playlists(&self) -> Vec<Vec<usize>> {
-        let path = "playlists.json";
-        if let Ok(contents) = std::fs::read_to_string(path)
-            && let Ok(playlists) = serde_json::from_str::<Vec<Vec<usize>>>(&contents)
-        {
-            return playlists;
-        }
-        vec![]
-    }
-
-    /// Save current playlists to "playlists.json".
-    #[allow(dead_code)]
-    pub fn save_playlists(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let path = "playlists.json";
-        let json = serde_json::to_string_pretty(&self.audio.playlists)?;
-        std::fs::write(path, json)?;
-        Ok(())
+    /// Save current playlists to "playlists.json" immediately.
+    /// Called after every playlist modification to prevent data loss.
+    pub fn save_playlists_now(&self) {
+        let _ = self.audio.save_playlists("playlists.json");
     }
 
     /// Run the main application loop.
@@ -178,14 +170,23 @@ impl App {
 
     /// Handle input events.
     fn handle_events(&mut self) -> io::Result<()> {
-        match event::read()? {
-            // it's important to check that the event is a key press event as
-            // crossterm also emits key release and repeat events on Windows.
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                self.handle_key_event(key_event)
-            }
-            _ => {}
-        };
+        // Use a timeout so we can check for track completion
+        if event::poll(std::time::Duration::from_millis(100))? {
+            match event::read()? {
+                // it's important to check that the event is a key press event as
+                // crossterm also emits key release and repeat events on Windows.
+                Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
+                    self.handle_key_event(key_event)
+                }
+                _ => {}
+            };
+        }
+
+        // Check if current track has finished and auto-play next
+        if self.audio.is_track_finished() && self.audio.is_audio_started() {
+            self.audio.play_next_track();
+        }
+
         Ok(())
     }
 
@@ -238,8 +239,7 @@ impl App {
 
     /// Exit the application, saving necessary state.
     fn exit(&mut self) {
-        // Save playlists before exiting
-        let _ = self.audio.save_playlists("playlists.json");
+        // Playlists are saved after each modification, so no need to save again
         self.exit = true;
     }
 }
