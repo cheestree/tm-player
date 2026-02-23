@@ -165,10 +165,10 @@ impl AudioState {
 
             // Update current_track_position to match the track being played
             let track_id = track.get_id();
-            if let Some(playlist) = self.playlists.get(self.current_playlist_index) {
-                if let Some(pos) = playlist.track_ids.iter().position(|&id| id == track_id) {
-                    self.current_track_position = pos;
-                }
+            if let Some(playlist) = self.playlists.get(self.current_playlist_index)
+                && let Some(pos) = playlist.track_ids.iter().position(|&id| id == track_id)
+            {
+                self.current_track_position = pos;
             }
         }
     }
@@ -310,10 +310,10 @@ impl AudioState {
 
     /// Add a track to a playlist by track ID
     pub fn add_track_id_to_playlist(&mut self, playlist_index: usize, track_id: u64) {
-        if let Some(playlist) = self.playlists.get_mut(playlist_index) {
-            if !playlist.track_ids.contains(&track_id) {
-                playlist.track_ids.push(track_id);
-            }
+        if let Some(playlist) = self.playlists.get_mut(playlist_index)
+            && !playlist.track_ids.contains(&track_id)
+        {
+            playlist.track_ids.push(track_id);
         }
     }
 
@@ -323,11 +323,12 @@ impl AudioState {
         playlist_index: usize,
         track_position: usize,
     ) -> bool {
-        if let Some(playlist) = self.playlists.get_mut(playlist_index) {
-            if track_position > 0 && track_position < playlist.track_ids.len() {
-                playlist.track_ids.swap(track_position, track_position - 1);
-                return true;
-            }
+        if let Some(playlist) = self.playlists.get_mut(playlist_index)
+            && track_position > 0
+            && track_position < playlist.track_ids.len()
+        {
+            playlist.track_ids.swap(track_position, track_position - 1);
+            return true;
         }
         false
     }
@@ -338,11 +339,11 @@ impl AudioState {
         playlist_index: usize,
         track_position: usize,
     ) -> bool {
-        if let Some(playlist) = self.playlists.get_mut(playlist_index) {
-            if track_position < playlist.track_ids.len().saturating_sub(1) {
-                playlist.track_ids.swap(track_position, track_position + 1);
-                return true;
-            }
+        if let Some(playlist) = self.playlists.get_mut(playlist_index)
+            && track_position < playlist.track_ids.len().saturating_sub(1)
+        {
+            playlist.track_ids.swap(track_position, track_position + 1);
+            return true;
         }
         false
     }
@@ -442,21 +443,19 @@ impl AudioState {
         // Use shuffle or sequential based on current mode
         if self.shuffle {
             self.play_next_shuffle();
-        } else {
-            if let Some(playlist) = self.playlists.get(playlist_index) {
-                if playlist.track_ids.is_empty() {
-                    return;
-                }
+        } else if let Some(playlist) = self.playlists.get(playlist_index) {
+            if playlist.track_ids.is_empty() {
+                return;
+            }
 
-                // Find next track position
-                let next_position = (self.current_track_position + 1) % playlist.track_ids.len();
+            // Find next track position
+            let next_position = (self.current_track_position + 1) % playlist.track_ids.len();
 
-                if let Some(&track_id) = playlist.track_ids.get(next_position) {
-                    if let Some(&track_index) = self.track_id_map.get(&track_id) {
-                        self.play_track_by_index(track_index);
-                        self.current_track_position = next_position;
-                    }
-                }
+            if let Some(&track_id) = playlist.track_ids.get(next_position)
+                && let Some(&track_index) = self.track_id_map.get(&track_id)
+            {
+                self.play_track_by_index(track_index);
+                self.current_track_position = next_position;
             }
         }
     }
@@ -474,25 +473,23 @@ impl AudioState {
         // Use shuffle or sequential based on current mode
         if self.shuffle {
             self.play_previous_shuffle();
-        } else {
-            if let Some(playlist) = self.playlists.get(playlist_index) {
-                if playlist.track_ids.is_empty() {
-                    return;
-                }
+        } else if let Some(playlist) = self.playlists.get(playlist_index) {
+            if playlist.track_ids.is_empty() {
+                return;
+            }
 
-                // Find previous track position
-                let prev_position = if self.current_track_position == 0 {
-                    playlist.track_ids.len() - 1
-                } else {
-                    self.current_track_position - 1
-                };
+            // Find previous track position
+            let prev_position = if self.current_track_position == 0 {
+                playlist.track_ids.len() - 1
+            } else {
+                self.current_track_position - 1
+            };
 
-                if let Some(&track_id) = playlist.track_ids.get(prev_position) {
-                    if let Some(&track_index) = self.track_id_map.get(&track_id) {
-                        self.play_track_by_index(track_index);
-                        self.current_track_position = prev_position;
-                    }
-                }
+            if let Some(&track_id) = playlist.track_ids.get(prev_position)
+                && let Some(&track_index) = self.track_id_map.get(&track_id)
+            {
+                self.play_track_by_index(track_index);
+                self.current_track_position = prev_position;
             }
         }
     }
@@ -530,10 +527,10 @@ impl AudioState {
             self.current_track_position = next_position;
 
             // Play the track
-            if let Some(&track_id) = playlist.track_ids.get(next_position) {
-                if let Some(&track_index) = self.track_id_map.get(&track_id) {
-                    self.play_track_by_index(track_index);
-                }
+            if let Some(&track_id) = playlist.track_ids.get(next_position)
+                && let Some(&track_index) = self.track_id_map.get(&track_id)
+            {
+                self.play_track_by_index(track_index);
             }
         }
     }
@@ -548,20 +545,11 @@ impl AudioState {
             self.current_track_position =
                 (self.current_track_position + 1) % playlist.track_ids.len();
 
-            if let Some(&track_id) = playlist.track_ids.get(self.current_track_position) {
-                if let Some(&track_index) = self.track_id_map.get(&track_id) {
-                    self.play_track_by_index(track_index);
-                }
+            if let Some(&track_id) = playlist.track_ids.get(self.current_track_position)
+                && let Some(&track_index) = self.track_id_map.get(&track_id)
+            {
+                self.play_track_by_index(track_index);
             }
-        }
-    }
-
-    /// Play the previous track (respects shuffle mode)
-    pub fn play_previous_track(&mut self) {
-        if self.shuffle {
-            self.play_previous_shuffle();
-        } else {
-            self.play_previous_sequential();
         }
     }
 
@@ -578,33 +566,11 @@ impl AudioState {
         if let Some(&prev_position) = self.shuffle_history.last() {
             self.current_track_position = prev_position;
 
-            if let Some(playlist) = self.playlists.get(self.current_playlist_index) {
-                if let Some(&track_id) = playlist.track_ids.get(prev_position) {
-                    if let Some(&track_index) = self.track_id_map.get(&track_id) {
-                        self.play_track_by_index(track_index);
-                    }
-                }
-            }
-        }
-    }
-
-    /// Play the previous track in sequential mode
-    fn play_previous_sequential(&mut self) {
-        if let Some(playlist) = self.playlists.get(self.current_playlist_index) {
-            if playlist.track_ids.is_empty() {
-                return;
-            }
-
-            if self.current_track_position == 0 {
-                self.current_track_position = playlist.track_ids.len() - 1;
-            } else {
-                self.current_track_position -= 1;
-            }
-
-            if let Some(&track_id) = playlist.track_ids.get(self.current_track_position) {
-                if let Some(&track_index) = self.track_id_map.get(&track_id) {
-                    self.play_track_by_index(track_index);
-                }
+            if let Some(playlist) = self.playlists.get(self.current_playlist_index)
+                && let Some(&track_id) = playlist.track_ids.get(prev_position)
+                && let Some(&track_index) = self.track_id_map.get(&track_id)
+            {
+                self.play_track_by_index(track_index);
             }
         }
     }

@@ -6,11 +6,16 @@ pub fn handle_key_event(
     app: &mut App,
     key_event: KeyEvent,
     _title: &str,
-    _description: &Option<String>
+    _description: &Option<String>,
 ) {
     match key_event.code {
         KeyCode::Char('y') | KeyCode::Char('Y') | KeyCode::Enter => {
-            let playlist_name = app.audio.playlists.get(app.ui.main.selected_playlist).map(|p| p.name.clone()).unwrap_or_default();
+            let playlist_name = app
+                .audio
+                .playlists
+                .get(app.ui.main.selected_playlist)
+                .map(|p| p.name.clone())
+                .unwrap_or_default();
             app.audio.delete_playlist(&playlist_name);
             app.save_playlists_now(); // Save immediately
             app.ui.overlay = None;
@@ -21,4 +26,3 @@ pub fn handle_key_event(
         _ => {}
     }
 }
-

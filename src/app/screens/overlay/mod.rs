@@ -13,10 +13,7 @@ use ratatui::layout::Rect;
 pub fn render(area: Rect, buf: &mut Buffer, app: &App, overlay: &Overlay) {
     match overlay {
         Overlay::Settings => settings::render(area, buf, app),
-        Overlay::DeletePlaylist {
-            title,
-            description,
-        } => {
+        Overlay::DeletePlaylist { title, description } => {
             deleteplaylist::render(area, buf, app, title, description);
         }
         Overlay::ActionMenu {
@@ -44,10 +41,9 @@ pub fn render(area: Rect, buf: &mut Buffer, app: &App, overlay: &Overlay) {
 pub fn handle_key_event(app: &mut App, key_event: crossterm::event::KeyEvent, overlay: &Overlay) {
     match overlay {
         Overlay::Settings => settings::handle_key_event(app, key_event),
-        Overlay::DeletePlaylist {
-            title,
-            description
-        } => deleteplaylist::handle_key_event(app, key_event, title, description),
+        Overlay::DeletePlaylist { title, description } => {
+            deleteplaylist::handle_key_event(app, key_event, title, description)
+        }
         Overlay::ActionMenu {
             track_index,
             selected_action,

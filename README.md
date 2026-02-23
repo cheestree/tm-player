@@ -1,5 +1,7 @@
 # :cd: tm-player
 
+![Terminal with playlists and tracks ](./assets/tm-player-1.png)
+
 A terminal-based music player built with Rust and the Ratatui framework.
 
 ## :rocket: Features

@@ -21,19 +21,20 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
                             app.ui.main.sort_ascending,
                         );
 
-                        if let Some(&actual_idx) = sorted_indices.get(app.ui.main.selected_track) {
-                            if let Some(track) = tracks.get(actual_idx) {
-                                // Find the track's library index
-                                if let Some(lib_idx) = app
-                                    .audio
-                                    .tracks
-                                    .iter()
-                                    .position(|t| t.get_id() == track.get_id())
-                                {
-                                    // Switch to the selected playlist before playing
-                                    app.audio.switch_to_playlist_by_index(app.ui.main.selected_playlist);
-                                    app.audio.play_track_by_index(lib_idx);
-                                }
+                        if let Some(&actual_idx) = sorted_indices.get(app.ui.main.selected_track)
+                            && let Some(track) = tracks.get(actual_idx)
+                        {
+                            // Find the track's library index
+                            if let Some(lib_idx) = app
+                                .audio
+                                .tracks
+                                .iter()
+                                .position(|t| t.get_id() == track.get_id())
+                            {
+                                // Switch to the selected playlist before playing
+                                app.audio
+                                    .switch_to_playlist_by_index(app.ui.main.selected_playlist);
+                                app.audio.play_track_by_index(lib_idx);
                             }
                         }
                         return;
@@ -143,13 +144,13 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
                 Keymap::RenamePlaylist => {
                     let playlist_index = app.ui.main.selected_playlist;
                     // Don't allow renaming "All Tracks"
-                    if playlist_index > 0 {
-                        if let Some(playlist) = app.audio.playlists.get(playlist_index) {
-                            app.ui.overlay = Some(Overlay::RenamePlaylist {
-                                playlist_index,
-                                current_name: playlist.name.clone(),
-                            });
-                        }
+                    if playlist_index > 0
+                        && let Some(playlist) = app.audio.playlists.get(playlist_index)
+                    {
+                        app.ui.overlay = Some(Overlay::RenamePlaylist {
+                            playlist_index,
+                            current_name: playlist.name.clone(),
+                        });
                     }
                     return;
                 }

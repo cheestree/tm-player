@@ -34,7 +34,7 @@ pub enum Overlay {
     Settings,
     DeletePlaylist {
         title: String,
-        description: Option<String>
+        description: Option<String>,
     },
     ActionMenu {
         track_index: usize,

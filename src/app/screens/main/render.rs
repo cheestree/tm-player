@@ -3,7 +3,7 @@ use crate::app::screens::main::state::TrackSort;
 use crate::app::screens::main::utils::compute_sorted_indices;
 use crate::settings::settings::Keymap;
 use crossterm::event::KeyCode;
-use ratatui::layout::{Constraint, Layout, Direction};
+use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::prelude::{Color, Modifier, StatefulWidget, Style, Widget};
 use ratatui::text::{Line, Span};
 use ratatui::{
@@ -193,8 +193,8 @@ fn render_main_content(area: Rect, buf: &mut Buffer, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(5),      // Tracks table
-            Constraint::Length(3),   // Player bar
+            Constraint::Min(5),    // Tracks table
+            Constraint::Length(3), // Player bar
         ])
         .split(area);
 
@@ -249,15 +249,14 @@ fn render_tracks_table(area: Rect, buf: &mut Buffer, app: &App) {
         Some(TrackSort::Album) => Some(2),
         Some(TrackSort::Duration) => Some(3),
         _ => None,
-    } {
-        if sorted_column < header_cells.len() {
-            let arrow = if app.ui.main.sort_ascending {
-                " ▲"
-            } else {
-                " ▼"
-            };
-            header_cells[sorted_column].push_str(arrow);
-        }
+    } && sorted_column < header_cells.len()
+    {
+        let arrow = if app.ui.main.sort_ascending {
+            " ▲"
+        } else {
+            " ▼"
+        };
+        header_cells[sorted_column].push_str(arrow);
     }
 
     let header = Row::new(header_cells).style(
@@ -297,11 +296,7 @@ fn render_tracks_table(area: Rect, buf: &mut Buffer, app: &App) {
 
 fn render_player_bar(area: Rect, buf: &mut Buffer, app: &App) {
     let content = if let Some(track) = app.audio.get_current_track() {
-        let icon = if app.audio.is_paused() {
-            "⏸"
-        } else {
-            "▶"
-        };
+        let icon = if app.audio.is_paused() { "⏸" } else { "▶" };
 
         let total_secs = track.duration.as_secs();
         let total_mins = total_secs / 60;
@@ -334,11 +329,7 @@ fn render_player_bar(area: Rect, buf: &mut Buffer, app: &App) {
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" - "),
-            Span::styled(
-                &track.title,
-                Style::default()
-                    .add_modifier(Modifier::BOLD),
-            ),
+            Span::styled(&track.title, Style::default().add_modifier(Modifier::BOLD)),
             Span::raw(" ["),
             Span::raw(&track.album),
             Span::raw("]"),
@@ -347,10 +338,7 @@ fn render_player_bar(area: Rect, buf: &mut Buffer, app: &App) {
                 format!("{} / {}", current_time, total_time),
                 Style::default().fg(Color::Cyan),
             ),
-            Span::styled(
-                shuffle_indicator,
-                Style::default().fg(Color::Magenta),
-            ),
+            Span::styled(shuffle_indicator, Style::default().fg(Color::Magenta)),
         ])
     } else {
         // No track playing
@@ -373,9 +361,8 @@ fn render_player_bar(area: Rect, buf: &mut Buffer, app: &App) {
         ])
     };
 
-    let paragraph = Paragraph::new(content)
-        .block(Block::default().borders(Borders::ALL).title("Now Playing"));
+    let paragraph =
+        Paragraph::new(content).block(Block::default().borders(Borders::ALL).title("Now Playing"));
 
     Widget::render(paragraph, area, buf);
 }
-
