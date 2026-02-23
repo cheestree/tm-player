@@ -3,13 +3,13 @@ use crate::app::screens::main::state::TrackSort;
 use crate::app::screens::main::utils::compute_sorted_indices;
 use crate::settings::settings::Keymap;
 use crossterm::event::KeyCode;
-use ratatui::layout::Constraint;
-use ratatui::prelude::{Color, Modifier, StatefulWidget, Style};
+use ratatui::layout::{Constraint, Layout, Direction};
+use ratatui::prelude::{Color, Modifier, StatefulWidget, Style, Widget};
 use ratatui::text::{Line, Span};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    widgets::{Block, Borders, Cell, List, ListItem, ListState, Row, Table, TableState},
+    widgets::{Block, Borders, Cell, List, ListItem, ListState, Paragraph, Row, Table, TableState},
 };
 
 pub fn render(area: Rect, buf: &mut Buffer, app: &App) {
@@ -50,11 +50,11 @@ fn build_main_keybinding_line(app: &App) -> Line<'static> {
     let action_order = [
         Keymap::Play,
         Keymap::Pause,
-        Keymap::OpenActionMenu,
-        Keymap::SelectNextTrack,
-        Keymap::SelectPreviousTrack,
-        Keymap::NextTrack,
         Keymap::PreviousTrack,
+        Keymap::NextTrack,
+        Keymap::SelectPreviousTrack,
+        Keymap::SelectNextTrack,
+        Keymap::OpenActionMenu,
         Keymap::ToggleShuffle,
         Keymap::VolumeUp,
         Keymap::VolumeDown,
@@ -71,17 +71,38 @@ fn build_sidebar_keybinding_line(app: &App) -> Line<'static> {
     if !app.ui.is_sidebar_focused() {
         return Line::from("");
     }
-    let mut spans = vec![Span::raw(" ")];
 
-    let action_order = [
-        Keymap::CreatePlaylist,
-        Keymap::RenamePlaylist,
-        Keymap::DeletePlaylist,
+    let mut spans = vec![];
+
+    let actions = [
+        (Keymap::CreatePlaylist, "+"),
+        (Keymap::RenamePlaylist, "✎"),
+        (Keymap::DeletePlaylist, "×"),
     ];
 
-    spans = build_keybinding_line(spans, action_order.to_vec(), app);
+    let mut first = true;
+    for (action, icon) in actions.iter() {
+        if let Some(keycode) = app.settings.find_key_for_action(action) {
+            if !first {
+                spans.push(Span::raw(" "));
+            }
+            first = false;
 
-    spans.push(Span::raw(" "));
+            // Just show [key]icon format for compactness
+            let key_str = match keycode {
+                KeyCode::Char(c) => format!("[{}]", c),
+                _ => format!("[{:?}]", keycode),
+            };
+
+            spans.push(Span::styled(
+                key_str,
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ));
+            spans.push(Span::raw(*icon));
+        }
+    }
 
     Line::from(spans).centered()
 }
@@ -100,22 +121,28 @@ fn build_keybinding_line<'a>(
             }
             first = false;
 
-            // Action name in default color
-            spans.push(Span::raw(action.as_str()));
-            spans.push(Span::raw(":"));
-
-            // Key in highlighted color
             let key_str = match keycode {
-                KeyCode::Char(' ') => " Space".to_string(),
-                KeyCode::Char(c) => format!(" '{}'", c),
-                _ => format!(" {:?}", keycode),
+                KeyCode::Char(' ') => "[Space]".to_string(),
+                KeyCode::Char(c) => format!("[{}]", c),
+                KeyCode::Enter => "[↵]".to_string(),
+                KeyCode::Up => "↑".to_string(),
+                KeyCode::Down => "↓".to_string(),
+                KeyCode::Left => "←".to_string(),
+                KeyCode::Right => "→".to_string(),
+                KeyCode::Tab => "[Tab]".to_string(),
+                KeyCode::Esc => "[Esc]".to_string(),
+                _ => format!("[{:?}]", keycode),
             };
+
             spans.push(Span::styled(
                 key_str,
                 Style::default()
                     .fg(Color::Cyan)
                     .add_modifier(Modifier::BOLD),
             ));
+
+            spans.push(Span::raw(" "));
+            spans.push(Span::raw(action.as_str()));
         }
     }
     spans
@@ -163,6 +190,19 @@ fn render_sidebar(area: Rect, buf: &mut Buffer, app: &App) {
 }
 
 fn render_main_content(area: Rect, buf: &mut Buffer, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(5),      // Tracks table
+            Constraint::Length(3),   // Player bar
+        ])
+        .split(area);
+
+    render_tracks_table(chunks[0], buf, app);
+    render_player_bar(chunks[1], buf, app);
+}
+
+fn render_tracks_table(area: Rect, buf: &mut Buffer, app: &App) {
     let tracks = app.audio.get_playlist_tracks(app.ui.main.selected_playlist);
 
     // Compute sorted indices
@@ -254,3 +294,88 @@ fn render_main_content(area: Rect, buf: &mut Buffer, app: &App) {
 
     StatefulWidget::render(table, area, buf, &mut state);
 }
+
+fn render_player_bar(area: Rect, buf: &mut Buffer, app: &App) {
+    let content = if let Some(track) = app.audio.get_current_track() {
+        let icon = if app.audio.is_paused() {
+            "⏸"
+        } else {
+            "▶"
+        };
+
+        let total_secs = track.duration.as_secs();
+        let total_mins = total_secs / 60;
+        let total_secs_remainder = total_secs % 60;
+        let total_time = format!("{:02}:{:02}", total_mins, total_secs_remainder);
+
+        let current_time = if let Some(pos) = app.audio.current_track_position() {
+            let current_mins = pos / 60;
+            let current_secs_remainder = pos % 60;
+            format!("{:02}:{:02}", current_mins, current_secs_remainder)
+        } else {
+            "0:00".to_string()
+        };
+
+        let shuffle_indicator = if app.audio.shuffle { " 🔀" } else { "" };
+
+        Line::from(vec![
+            Span::raw(" "),
+            Span::styled(
+                icon,
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" "),
+            Span::styled(
+                &track.artist,
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" - "),
+            Span::styled(
+                &track.title,
+                Style::default()
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" ["),
+            Span::raw(&track.album),
+            Span::raw("]"),
+            Span::raw("  "),
+            Span::styled(
+                format!("{} / {}", current_time, total_time),
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::styled(
+                shuffle_indicator,
+                Style::default().fg(Color::Magenta),
+            ),
+        ])
+    } else {
+        // No track playing
+        Line::from(vec![
+            Span::raw(" "),
+            Span::styled(
+                "No track playing",
+                Style::default()
+                    .fg(Color::DarkGray)
+                    .add_modifier(Modifier::ITALIC),
+            ),
+            Span::raw(" - Press "),
+            Span::styled(
+                "[↵]",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" to play"),
+        ])
+    };
+
+    let paragraph = Paragraph::new(content)
+        .block(Block::default().borders(Borders::ALL).title("Now Playing"));
+
+    Widget::render(paragraph, area, buf);
+}
+

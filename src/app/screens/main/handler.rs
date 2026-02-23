@@ -30,6 +30,8 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
                                     .iter()
                                     .position(|t| t.get_id() == track.get_id())
                                 {
+                                    // Switch to the selected playlist before playing
+                                    app.audio.switch_to_playlist_by_index(app.ui.main.selected_playlist);
                                     app.audio.play_track_by_index(lib_idx);
                                 }
                             }

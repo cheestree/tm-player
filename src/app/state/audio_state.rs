@@ -41,10 +41,10 @@ pub struct AudioState {
     current_track_position: usize,
     /// Shuffle mode enabled
     pub shuffle: bool,
-    /// Shuffled order of track indices (when shuffle is on)
-    shuffle_order: Vec<usize>,
-    /// Position in the shuffle order
-    shuffle_position: usize,
+    /// History of played track positions in shuffle mode (so we can go back)
+    shuffle_history: Vec<usize>,
+    /// Whether playback has ever been started (for auto-play logic)
+    has_played_track: bool,
     _stream: OutputStream,
     sink: Arc<Mutex<Sink>>,
 }
@@ -69,8 +69,8 @@ impl AudioState {
             current_playlist_index: 0,
             current_track_position: 0,
             shuffle: false,
-            shuffle_order: Vec::new(),
-            shuffle_position: 0,
+            shuffle_history: Vec::new(),
+            has_played_track: false,
             _stream: stream,
             sink,
         }
@@ -116,8 +116,8 @@ impl AudioState {
             current_playlist_index,
             current_track_position: 0,
             shuffle: false,
-            shuffle_order: Vec::new(),
-            shuffle_position: 0,
+            shuffle_history: Vec::new(),
+            has_played_track: false,
             _stream: stream,
             sink,
         }
@@ -160,6 +160,16 @@ impl AudioState {
             sink.stop();
             sink.append(source);
             sink.play();
+
+            self.has_played_track = true;
+
+            // Update current_track_position to match the track being played
+            let track_id = track.get_id();
+            if let Some(playlist) = self.playlists.get(self.current_playlist_index) {
+                if let Some(pos) = playlist.track_ids.iter().position(|&id| id == track_id) {
+                    self.current_track_position = pos;
+                }
+            }
         }
     }
 
@@ -232,9 +242,26 @@ impl AudioState {
         if let Some(index) = self.playlists.iter().position(|p| p.name == name) {
             self.current_playlist_index = index;
             self.current_track_position = 0;
+
+            // Clear shuffle history when switching playlists
+            if self.shuffle {
+                self.shuffle_history.clear();
+                self.shuffle_history.push(0);
+            }
         }
     }
 
+    /// Switch to a different playlist by index
+    pub fn switch_to_playlist_by_index(&mut self, index: usize) {
+        if index < self.playlists.len() {
+            self.current_playlist_index = index;
+
+            // Clear shuffle history when switching playlists
+            if self.shuffle {
+                self.shuffle_history.clear();
+            }
+        }
+    }
     /// Create a new playlist
     pub fn create_playlist(&mut self, name: String) {
         let playlist = Playlist::new(name, Vec::new());
@@ -246,6 +273,7 @@ impl AudioState {
     pub fn add_track_to_playlist(&mut self, playlist_name: &str, track_index: usize) {
         if let Some(track) = self.tracks.get(track_index) {
             let track_id = track.get_id();
+
             if let Some(playlist) = self.playlists.iter_mut().find(|p| p.name == playlist_name)
                 && !playlist.track_ids.contains(&track_id)
             {
@@ -358,20 +386,10 @@ impl AudioState {
     pub fn toggle_shuffle(&mut self) {
         self.shuffle = !self.shuffle;
         if self.shuffle {
-            self.generate_shuffle_order();
-        }
-    }
-
-    /// Generate a new shuffle order for the current playlist
-    fn generate_shuffle_order(&mut self) {
-        if let Some(playlist) = self.playlists.get(self.current_playlist_index) {
-            use rand::seq::SliceRandom;
-            use rand::thread_rng;
-
-            let mut indices: Vec<usize> = (0..playlist.track_ids.len()).collect();
-            indices.shuffle(&mut thread_rng());
-            self.shuffle_order = indices;
-            self.shuffle_position = 0;
+            // Clear shuffle history when enabling shuffle
+            self.shuffle_history.clear();
+            // Add current track to history so we don't repeat it immediately
+            self.shuffle_history.push(self.current_track_position);
         }
     }
 
@@ -383,9 +401,23 @@ impl AudioState {
 
     /// Check if audio playback has been started (to prevent auto-advance before first play)
     pub fn is_audio_started(&self) -> bool {
+        self.has_played_track
+    }
+
+    /// Check if audio is currently paused
+    pub fn is_paused(&self) -> bool {
         let sink = self.sink.lock().unwrap();
-        // If sink has ever had something in it, len() will be > 0 or it will be empty after playing
-        sink.len() > 0 || !sink.empty()
+        sink.is_paused()
+    }
+
+    /// Retrieves the currently tracks' playback position in seconds.
+    pub fn current_track_position(&self) -> Option<u64> {
+        let sink = self.sink.lock().unwrap();
+        if sink.len() > 0 {
+            Some(sink.get_pos().as_secs())
+        } else {
+            None
+        }
     }
 
     /// Play the next track automatically (for auto-play)
@@ -399,11 +431,11 @@ impl AudioState {
 
     /// Play the next track in the given playlist (for manual skip)
     pub fn play_next_track_in_playlist(&mut self, playlist_index: usize) {
-        // Update current playlist and regenerate shuffle if needed
+        // Update current playlist and clear shuffle history if switching playlists
         if self.current_playlist_index != playlist_index {
             self.current_playlist_index = playlist_index;
             if self.shuffle {
-                self.generate_shuffle_order();
+                self.shuffle_history.clear();
             }
         }
 
@@ -431,11 +463,11 @@ impl AudioState {
 
     /// Play the previous track in the given playlist (for manual skip)
     pub fn play_previous_track_in_playlist(&mut self, playlist_index: usize) {
-        // Update current playlist and regenerate shuffle if needed
+        // Update current playlist and clear shuffle history if switching playlists
         if self.current_playlist_index != playlist_index {
             self.current_playlist_index = playlist_index;
             if self.shuffle {
-                self.generate_shuffle_order();
+                self.shuffle_history.clear();
             }
         }
 
@@ -467,19 +499,40 @@ impl AudioState {
 
     /// Play the next track in shuffle mode
     fn play_next_shuffle(&mut self) {
-        if self.shuffle_order.is_empty() {
-            return;
-        }
+        if let Some(playlist) = self.playlists.get(self.current_playlist_index) {
+            if playlist.track_ids.is_empty() {
+                return;
+            }
 
-        self.shuffle_position = (self.shuffle_position + 1) % self.shuffle_order.len();
+            // If we've played all tracks, reset history (keep only current track)
+            if self.shuffle_history.len() >= playlist.track_ids.len() {
+                let current = self.current_track_position;
+                self.shuffle_history.clear();
+                self.shuffle_history.push(current);
+            }
 
-        if let Some(&position) = self.shuffle_order.get(self.shuffle_position) {
-            if let Some(playlist) = self.playlists.get(self.current_playlist_index) {
-                if let Some(&track_id) = playlist.track_ids.get(position) {
-                    if let Some(&track_index) = self.track_id_map.get(&track_id) {
-                        self.play_track_by_index(track_index);
-                        self.current_track_position = position;
-                    }
+            // Find tracks that haven't been played yet
+            let unplayed: Vec<usize> = (0..playlist.track_ids.len())
+                .filter(|&pos| !self.shuffle_history.contains(&pos))
+                .collect();
+
+            if unplayed.is_empty() {
+                return;
+            }
+
+            // Pick a random unplayed track
+            use rand::Rng;
+            let random_idx = rand::thread_rng().gen_range(0..unplayed.len());
+            let next_position = unplayed[random_idx];
+
+            // Add to history
+            self.shuffle_history.push(next_position);
+            self.current_track_position = next_position;
+
+            // Play the track
+            if let Some(&track_id) = playlist.track_ids.get(next_position) {
+                if let Some(&track_index) = self.track_id_map.get(&track_id) {
+                    self.play_track_by_index(track_index);
                 }
             }
         }
@@ -514,22 +567,21 @@ impl AudioState {
 
     /// Play the previous track in shuffle mode
     fn play_previous_shuffle(&mut self) {
-        if self.shuffle_order.is_empty() {
+        if self.shuffle_history.len() <= 1 {
             return;
         }
 
-        if self.shuffle_position == 0 {
-            self.shuffle_position = self.shuffle_order.len() - 1;
-        } else {
-            self.shuffle_position -= 1;
-        }
+        // Remove current track from history
+        self.shuffle_history.pop();
 
-        if let Some(&position) = self.shuffle_order.get(self.shuffle_position) {
+        // Get the previous track from history
+        if let Some(&prev_position) = self.shuffle_history.last() {
+            self.current_track_position = prev_position;
+
             if let Some(playlist) = self.playlists.get(self.current_playlist_index) {
-                if let Some(&track_id) = playlist.track_ids.get(position) {
+                if let Some(&track_id) = playlist.track_ids.get(prev_position) {
                     if let Some(&track_index) = self.track_id_map.get(&track_id) {
                         self.play_track_by_index(track_index);
-                        self.current_track_position = position;
                     }
                 }
             }
